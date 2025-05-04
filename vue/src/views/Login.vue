@@ -16,8 +16,12 @@
         <el-form-item label="密码" v-if="isPasswordLogin" prop="password">
           <el-input v-model="loginForm.password" type="password"></el-input>
         </el-form-item>
-        <el-form-item label="验证码" v-if="!isPasswordLogin" prop="code">
-          <el-input v-model="loginForm.code"></el-input>
+        <el-form-item
+          label="验证码"
+          v-if="!isPasswordLogin"
+          prop="verificationCode"
+        >
+          <el-input v-model="loginForm.verificationCode"></el-input>
           <el-button @click="sendCode" :disabled="isSendingCode">
             {{ isSendingCode ? `重新发送(${countdown}s)` : "发送验证码" }}
           </el-button>
@@ -48,8 +52,8 @@
         <el-form-item label="邮箱" prop="email">
           <el-input v-model="forgotPasswordForm.email"></el-input>
         </el-form-item>
-        <el-form-item label="验证码" prop="code">
-          <el-input v-model="forgotPasswordForm.code"></el-input>
+        <el-form-item label="验证码" prop="verificationCode">
+          <el-input v-model="forgotPasswordForm.verificationCode"></el-input>
           <el-button @click="sendVerifyCode" :disabled="isSendingVerifyCode">
             {{
               isSendingVerifyCode
@@ -76,6 +80,8 @@
 </template>
 
 <script>
+import request from "../utils/request";
+
 export default {
   data() {
     return {
@@ -85,11 +91,11 @@ export default {
       loginForm: {
         email: "",
         password: "",
-        code: "",
+        verificationCode: "",
       },
       forgotPasswordForm: {
         email: "",
-        code: "",
+        verificationCode: "",
         newPassword: "",
       },
       loginFormRules: {
@@ -102,7 +108,10 @@ export default {
           },
         ],
         password: [{ required: true, message: "请输入密码", trigger: "blur" }],
-        code: [{ required: true, message: "请输入验证码", trigger: "blur" }],
+        verificationCode: [
+          { required: true, message: "请输入验证码", trigger: "blur" },
+          { min: 6, max: 6, message: "验证码长度必须为6", trigger: "blur" },
+        ],
       },
       forgotPasswordFormRules: {
         email: [
@@ -113,17 +122,20 @@ export default {
             trigger: "blur",
           },
         ],
-        code: [{ required: true, message: "请输入验证码", trigger: "blur" }],
+        verificationCode: [
+          { required: true, message: "请输入验证码", trigger: "blur" },
+          { min: 6, max: 6, message: "验证码长度必须为6", trigger: "blur" },
+        ],
         newPassword: [
           { required: true, message: "请输入新密码", trigger: "blur" },
         ],
       },
-      isSendingCode: false,
-      isSendingVerifyCode: false,
+      isSendingCode: false, // 登录验证码发送状态
+      isSendingVerifyCode: false, // 忘记密码的验证码发送状态
       countdown: 60,
       countdownVerify: 60,
-      sentCodeTime: null,
-      verifyCodeTime: null,
+      sentCodeTime: null, // 登录验证码发送时间
+      verifyCodeTime: null, // 忘记密码的验证码发送时间
     };
   },
   methods: {
@@ -147,6 +159,7 @@ export default {
         }
       });
     },
+
     submitResetPassword() {
       this.$refs.forgotPasswordFormRef.validate((valid) => {
         if (valid) {
@@ -165,50 +178,77 @@ export default {
         }
       });
     },
+
     login() {
       if (this.isPasswordLogin) {
         // 密码登录
-        this.$http
-          .post("/user/loginByPassword", this.loginForm)
+        request
+          .post("/user/loginByPassword", {
+            email: this.loginForm.email,
+            password: this.loginForm.password,
+          })
           .then((response) => {
-            // 处理登录成功逻辑，可跳转到用户管理页面
-            this.$router.push({
-              name: "UserManagement",
-              query: { email: this.loginForm.email },
-            });
+            const { refreshToken, accessToken } = response.data;
+            // 存储 refreshToken 到 localStorage
+            localStorage.setItem("refreshToken", refreshToken);
+            // 存储 accessToken 到 localStorage
+            localStorage.setItem("accessToken", accessToken);
+            // 存储用户信息到 localStorage
+            localStorage.setItem("userEmail", this.loginForm.email);
+            this.$message.success("登录成功");
+            // 页面跳转
+            this.$router.push("/create");
           })
           .catch((error) => {
             // 处理登录失败逻辑
             console.log(error);
+            this.$message.error("登录失败，请检查邮箱和密码");
           });
       } else {
         // 验证码登录
-        this.$http
-          .post("/user/loginByEmail", this.loginForm)
+        request
+          .post("/user/loginByEmail", {
+            email: this.loginForm.email,
+            verificationCode: this.loginForm.verificationCode,
+          })
           .then((response) => {
-            // 处理登录成功逻辑，可跳转到用户管理页面
-            this.$router.push({
-              name: "UserManagement",
-              query: { email: this.loginForm.email },
-            });
+            const { refreshToken, accessToken } = response.data;
+            // 存储 refreshToken 到 localStorage
+            localStorage.setItem("refreshToken", refreshToken);
+            // 存储 accessToken 到 localStorage
+            localStorage.setItem("accessToken", accessToken);
+            // 存储用户信息到 localStorage
+            localStorage.setItem("userEmail", this.loginForm.email);
+            this.$message.success("登录成功");
+            // 页面跳转
+            this.$router.push("/create");
           })
           .catch((error) => {
             // 处理登录失败逻辑
             console.log(error);
+            this.$message.error("登录失败，请检查邮箱和验证码");
           });
       }
     },
+
     toggleLoginType() {
       this.isPasswordLogin = !this.isPasswordLogin;
+      // 切换登录方式时重置验证码时间和状态
+      this.sentCodeTime = null;
+      this.isSendingCode = false;
+      this.countdown = 60;
+      this.loginForm.verificationCode = "";
     },
+
+    // 登录验证码
     sendCode() {
       if (this.isSendingCode) return;
       this.isSendingCode = true;
-      this.$http
-        .post("/valid/email", { email: this.loginForm.email })
+      request
+        .post(`/user/email?email=${this.loginForm.email}`)
         .then((response) => {
           // 处理发送验证码成功逻辑
-          console.log("验证码已发送");
+          this.$message.success("验证码已发送");
           this.sentCodeTime = Date.now();
           let timer = setInterval(() => {
             if (this.countdown > 0) {
@@ -222,23 +262,26 @@ export default {
         })
         .catch((error) => {
           // 处理发送验证码失败逻辑
-          console.log("验证码发送失败", error);
+          this.$message.error("验证码发送失败，请稍后重试");
           this.isSendingCode = false;
           this.countdown = 60;
         });
     },
+
     showForgotPassword() {
       this.isLoginFormVisible = false;
       this.isForgotPasswordFormVisible = true;
     },
+
+    // 忘记密码的验证码
     sendVerifyCode() {
       if (this.isSendingVerifyCode) return;
       this.isSendingVerifyCode = true;
-      this.$http
-        .post("/user/verify", { email: this.forgotPasswordForm.email })
+      request
+        .post(`/user/email?email=${this.forgotPasswordForm.email}`)
         .then((response) => {
           // 处理发送验证邮件成功逻辑
-          console.log("验证邮件已发送");
+          this.$message.success("验证码已发送");
           this.verifyCodeTime = Date.now();
           let timer = setInterval(() => {
             if (this.countdownVerify > 0) {
@@ -252,13 +295,14 @@ export default {
         })
         .catch((error) => {
           // 处理发送验证邮件失败逻辑
-          console.log(error);
+          this.$message.error("验证邮件发送失败，请稍后重试");
           this.isSendingVerifyCode = false;
           this.countdownVerify = 60;
         });
     },
+
     resetPassword() {
-      this.$http
+      request
         .put("/user/resetPassword", this.forgotPasswordForm)
         .then((response) => {
           // 处理重置密码成功逻辑
@@ -270,6 +314,7 @@ export default {
           console.log(error);
         });
     },
+
     showLoginForm() {
       this.isLoginFormVisible = true;
       this.isForgotPasswordFormVisible = false;

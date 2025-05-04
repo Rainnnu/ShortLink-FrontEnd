@@ -7,9 +7,9 @@
       class="create-form"
     >
       <h2 class="form-title">用户信息</h2>
-
+      <!-- 邮箱信息，从接口获取并展示，不使用input框 -->
       <el-form-item label="邮箱">
-        <el-input v-model="userInfo.email" disabled></el-input>
+        <span class="email-display">{{ userInfo.email }}</span>
       </el-form-item>
       <el-form-item label="头像">
         <div class="avatar-container">
@@ -68,6 +68,7 @@
 <script>
 import { MessageBox } from "element-ui";
 import defaultAvatar from "@/assets/logo.png"; // 引入默认头像，需确保路径正确
+import request from "../utils/request";
 
 export default {
   data() {
@@ -89,32 +90,43 @@ export default {
   },
   methods: {
     fetchUserInformation() {
-      this.$http
-        .get("/user/information")
+      // 从本地存储获取参数
+      const email = localStorage.getItem("userEmail");
+      if (!email) {
+        this.$message.error("未找到用户邮箱信息，请重新登录！");
+        // 注销成功，清除token和用户信息
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("userEmail");
+        // 跳转到登录页面
+        this.$router.push("/login");
+        return;
+      }
+
+      request
+        .get(`/user/information`)
         .then((response) => {
-          // 更新用户信息
-          this.userInfo = response.data;
+          if (response.code === 200) {
+            const { name, avatar, profile, email } = response.data;
+            this.userInfo = {
+              ...this.userInfo,
+              nickname: name,
+              avatar,
+              profile,
+              email,
+            };
+          } else {
+            console.error(response.msg);
+          }
         })
         .catch((error) => {
-          // 处理获取用户信息失败逻辑，使用默认信息
-          console.log(error);
-          // 这里可以根据需要设置默认信息，目前使用空字符串作为默认值
-          this.userInfo = {
-            email: "",
-            nickname: "",
-            avatar: "",
-            profile: "",
-            oldPassword: "",
-            newPassword: "",
-          };
+          console.error("获取用户信息失败", error);
+          this.$message.error("获取用户信息失败");
         });
     },
     saveNickname() {
-      this.$http
-        .put("/user/name", {
-          email: this.userInfo.email,
-          nickname: this.userInfo.nickname,
-        })
+      request
+        .put(`/user/name?name=${this.userInfo.nickname}`)
         .then((response) => {
           // 处理修改昵称成功逻辑
           console.log("昵称修改成功");
@@ -127,11 +139,8 @@ export default {
         });
     },
     saveProfile() {
-      this.$http
-        .put("/user/profile", {
-          email: this.userInfo.email,
-          profile: this.userInfo.profile,
-        })
+      request
+        .put(`/user/profile?profile=${this.userInfo.profile}`)
         .then((response) => {
           // 处理修改个人简介成功逻辑
           console.log("个人简介修改成功");
@@ -144,11 +153,10 @@ export default {
         });
     },
     savePassword() {
-      this.$http
+      request
         .put("/user/change/password", {
-          email: this.userInfo.email,
-          oldPassword: this.userInfo.oldPassword,
-          newPassword: this.userInfo.newPassword,
+          prePassword: String(this.userInfo.oldPassword),
+          newPassword: String(this.userInfo.newPassword),
         })
         .then((response) => {
           // 处理修改密码成功逻辑
@@ -175,8 +183,7 @@ export default {
       if (file) {
         const formData = new FormData();
         formData.append("avatar", file);
-        formData.append("email", this.userInfo.email);
-        this.$http
+        request
           .post("/user/uploadAvatar", formData)
           .then((response) => {
             // 更新用户头像信息
@@ -198,10 +205,14 @@ export default {
         type: "warning",
       })
         .then(() => {
-          this.$http
+          request
             .post("/user/logout")
             .then((response) => {
-              // 处理注销成功逻辑，跳转到登录页面
+              // 注销成功，清除token和用户信息
+              localStorage.removeItem("accessToken");
+              localStorage.removeItem("refreshToken");
+              localStorage.removeItem("userEmail");
+              // 跳转到登录页面
               this.$router.push("/login");
             })
             .catch((error) => {
@@ -257,5 +268,10 @@ export default {
 .input-button-group.el-input {
   flex: 1;
   margin-right: 10px;
+}
+
+.email-display {
+  display: inline-block;
+  text-align: left;
 }
 </style>
