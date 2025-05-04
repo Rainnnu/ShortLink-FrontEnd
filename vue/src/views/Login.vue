@@ -1,0 +1,358 @@
+<template>
+  <div class="login-container">
+    <!-- 登录表单，通过 isLoginFormVisible 控制显示隐藏 -->
+    <div v-if="isLoginFormVisible">
+      <el-form
+        :model="loginForm"
+        ref="loginFormRef"
+        label-width="80px"
+        :rules="loginFormRules"
+      >
+        <h2 class="title">登录</h2>
+
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="loginForm.email"></el-input>
+        </el-form-item>
+        <el-form-item label="密码" v-if="isPasswordLogin" prop="password">
+          <el-input v-model="loginForm.password" type="password"></el-input>
+        </el-form-item>
+        <el-form-item label="验证码" v-if="!isPasswordLogin" prop="code">
+          <el-input v-model="loginForm.code"></el-input>
+          <el-button @click="sendCode" :disabled="isSendingCode">
+            {{ isSendingCode ? `重新发送(${countdown}s)` : "发送验证码" }}
+          </el-button>
+        </el-form-item>
+        <el-form-item>
+          <span class="hint-text"
+            >（用户初次使用该方式视为注册，密码需要到个人信息页面设置）</span
+          >
+          <el-button type="primary" @click="submitLogin">登录</el-button>
+          <el-button @click="toggleLoginType">
+            切换到 {{ isPasswordLogin ? "验证码登录" : "密码登录" }}
+          </el-button>
+          <el-button @click="showForgotPassword">忘记密码</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <!-- 忘记密码表单，通过 isForgotPasswordFormVisible 控制显示隐藏 -->
+    <div v-if="isForgotPasswordFormVisible">
+      <el-form
+        :model="forgotPasswordForm"
+        ref="forgotPasswordFormRef"
+        label-width="80px"
+        :rules="forgotPasswordFormRules"
+      >
+        <h2 class="title">重置密码</h2>
+
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="forgotPasswordForm.email"></el-input>
+        </el-form-item>
+        <el-form-item label="验证码" prop="code">
+          <el-input v-model="forgotPasswordForm.code"></el-input>
+          <el-button @click="sendVerifyCode" :disabled="isSendingVerifyCode">
+            {{
+              isSendingVerifyCode
+                ? `重新发送(${countdownVerify}s)`
+                : "发送验证码"
+            }}
+          </el-button>
+        </el-form-item>
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input
+            v-model="forgotPasswordForm.newPassword"
+            type="password"
+          ></el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="submitResetPassword"
+            >重置密码</el-button
+          >
+          <el-button @click="showLoginForm">返回登录</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      isPasswordLogin: true,
+      isLoginFormVisible: true,
+      isForgotPasswordFormVisible: false,
+      loginForm: {
+        email: "",
+        password: "",
+        code: "",
+      },
+      forgotPasswordForm: {
+        email: "",
+        code: "",
+        newPassword: "",
+      },
+      loginFormRules: {
+        email: [
+          { required: true, message: "请输入邮箱", trigger: "blur" },
+          {
+            pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+            message: "邮箱格式不正确",
+            trigger: "blur",
+          },
+        ],
+        password: [{ required: true, message: "请输入密码", trigger: "blur" }],
+        code: [{ required: true, message: "请输入验证码", trigger: "blur" }],
+      },
+      forgotPasswordFormRules: {
+        email: [
+          { required: true, message: "请输入邮箱", trigger: "blur" },
+          {
+            pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+            message: "邮箱格式不正确",
+            trigger: "blur",
+          },
+        ],
+        code: [{ required: true, message: "请输入验证码", trigger: "blur" }],
+        newPassword: [
+          { required: true, message: "请输入新密码", trigger: "blur" },
+        ],
+      },
+      isSendingCode: false,
+      isSendingVerifyCode: false,
+      countdown: 60,
+      countdownVerify: 60,
+      sentCodeTime: null,
+      verifyCodeTime: null,
+    };
+  },
+  methods: {
+    submitLogin() {
+      this.$refs.loginFormRef.validate((valid) => {
+        if (valid) {
+          if (!this.isPasswordLogin) {
+            const currentTime = Date.now();
+            if (
+              this.sentCodeTime &&
+              currentTime - this.sentCodeTime > 60 * 1000
+            ) {
+              this.$message.error("验证码已过期，请重新获取");
+              return;
+            }
+          }
+          this.login();
+        } else {
+          console.log("表单校验不通过");
+          return false;
+        }
+      });
+    },
+    submitResetPassword() {
+      this.$refs.forgotPasswordFormRef.validate((valid) => {
+        if (valid) {
+          const currentTime = Date.now();
+          if (
+            this.verifyCodeTime &&
+            currentTime - this.verifyCodeTime > 60 * 1000
+          ) {
+            this.$message.error("验证码已过期，请重新获取");
+            return;
+          }
+          this.resetPassword();
+        } else {
+          console.log("表单校验不通过");
+          return false;
+        }
+      });
+    },
+    login() {
+      if (this.isPasswordLogin) {
+        // 密码登录
+        this.$http
+          .post("/user/loginByPassword", this.loginForm)
+          .then((response) => {
+            // 处理登录成功逻辑，可跳转到用户管理页面
+            this.$router.push({
+              name: "UserManagement",
+              query: { email: this.loginForm.email },
+            });
+          })
+          .catch((error) => {
+            // 处理登录失败逻辑
+            console.log(error);
+          });
+      } else {
+        // 验证码登录
+        this.$http
+          .post("/user/loginByEmail", this.loginForm)
+          .then((response) => {
+            // 处理登录成功逻辑，可跳转到用户管理页面
+            this.$router.push({
+              name: "UserManagement",
+              query: { email: this.loginForm.email },
+            });
+          })
+          .catch((error) => {
+            // 处理登录失败逻辑
+            console.log(error);
+          });
+      }
+    },
+    toggleLoginType() {
+      this.isPasswordLogin = !this.isPasswordLogin;
+    },
+    sendCode() {
+      if (this.isSendingCode) return;
+      this.isSendingCode = true;
+      this.$http
+        .post("/valid/email", { email: this.loginForm.email })
+        .then((response) => {
+          // 处理发送验证码成功逻辑
+          console.log("验证码已发送");
+          this.sentCodeTime = Date.now();
+          let timer = setInterval(() => {
+            if (this.countdown > 0) {
+              this.countdown--;
+            } else {
+              clearInterval(timer);
+              this.isSendingCode = false;
+              this.countdown = 60;
+            }
+          }, 1000);
+        })
+        .catch((error) => {
+          // 处理发送验证码失败逻辑
+          console.log("验证码发送失败", error);
+          this.isSendingCode = false;
+          this.countdown = 60;
+        });
+    },
+    showForgotPassword() {
+      this.isLoginFormVisible = false;
+      this.isForgotPasswordFormVisible = true;
+    },
+    sendVerifyCode() {
+      if (this.isSendingVerifyCode) return;
+      this.isSendingVerifyCode = true;
+      this.$http
+        .post("/user/verify", { email: this.forgotPasswordForm.email })
+        .then((response) => {
+          // 处理发送验证邮件成功逻辑
+          console.log("验证邮件已发送");
+          this.verifyCodeTime = Date.now();
+          let timer = setInterval(() => {
+            if (this.countdownVerify > 0) {
+              this.countdownVerify--;
+            } else {
+              clearInterval(timer);
+              this.isSendingVerifyCode = false;
+              this.countdownVerify = 60;
+            }
+          }, 1000);
+        })
+        .catch((error) => {
+          // 处理发送验证邮件失败逻辑
+          console.log(error);
+          this.isSendingVerifyCode = false;
+          this.countdownVerify = 60;
+        });
+    },
+    resetPassword() {
+      this.$http
+        .put("/user/resetPassword", this.forgotPasswordForm)
+        .then((response) => {
+          // 处理重置密码成功逻辑
+          this.isForgotPasswordFormVisible = false;
+          this.isLoginFormVisible = true;
+        })
+        .catch((error) => {
+          // 处理重置密码失败逻辑
+          console.log(error);
+        });
+    },
+    showLoginForm() {
+      this.isLoginFormVisible = true;
+      this.isForgotPasswordFormVisible = false;
+    },
+  },
+};
+</script>
+
+<style scoped>
+h2 {
+  padding: 0;
+  text-align: center;
+  color: #333;
+}
+
+.login-container {
+  min-height: 100vh;
+  background-color: #f4f4f4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-container > div {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.el-form {
+  width: 50%;
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.el-input {
+  width: calc(100% - 18px);
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.el-button {
+  margin: 5px;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.el-button--primary {
+  background-color: #42b983;
+  color: white;
+}
+
+.el-button--primary:hover {
+  background-color: #37a373;
+}
+
+.el-button--default {
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+.el-button--default:hover {
+  background-color: #e9e9e9;
+}
+
+.hint-text {
+  display: block;
+  margin-bottom: 10px;
+  color: #666;
+  font-size: 12px;
+}
+
+.el-form-item__error {
+  color: #f56c6c;
+  font-size: 12px;
+  margin-top: 3px;
+}
+</style>
