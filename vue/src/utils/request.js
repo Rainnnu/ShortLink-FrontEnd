@@ -14,10 +14,26 @@ request.interceptors.request.use(
     config.headers["Content-Type"] = "application/json;charset=utf-8";
     // 从本地存储中获取 accessToken
     const accessToken = localStorage.getItem("accessToken");
-    if (accessToken) {
-      // 设置请求头
-      config.headers["Authorization"] = `Bearer ${accessToken}`;
+    const accessToken2 = localStorage.getItem("templeAccessToken"); //临时token
+
+    if (
+      config.url.includes("/users/loginByPassword") ||
+      config.url.includes("/users/loginByEmail") ||
+      config.url.includes("/users/email") ||
+      config.url.includes("/users/verify")
+    ) {
+      // 无需设置token请求头
+      return config;
     }
+
+    if (config.url.includes("/users/resetPassword") && accessToken2) {
+      //忘记密码需要一个临时token
+      config.headers["accessToken"] = `${accessToken2}`; //后端要求为accessToken
+      return config;
+    }
+
+    if (accessToken) config.headers["accessToken"] = `${accessToken}`; //后端要求为accessToken
+
     return config;
   },
   (error) => {
@@ -82,7 +98,7 @@ request.interceptors.response.use(
         // 正在刷新 token，将请求挂起
         return new Promise((resolve) => {
           requests.push((accessToken) => {
-            config.headers["Authorization"] = `Bearer ${accessToken}`;
+            config.headers["Authorization"] = `${accessToken}`;
             resolve(request(config));
           });
         });

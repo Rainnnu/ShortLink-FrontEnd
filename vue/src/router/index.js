@@ -56,13 +56,17 @@ const router = new VueRouter({
 // 添加全局前置守卫
 router.beforeEach((to, from, next) => {
   const accessToken = localStorage.getItem("accessToken");
-  if (!accessToken) {
-    // 没有 token，跳转到登录页面
-    next("/login");
-  } else {
-    // 否则继续导航
-    next();
+
+  // 如果要访问的是登录页，直接放行
+  if (to.name === "Login") {
+    return next();
   }
+  // 如果没有token，重定向到登录页
+  if (!accessToken) {
+    return next({ name: "Login" });
+  }
+  // 否则继续导航
+  next();
 });
 
 export default router;

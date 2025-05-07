@@ -44,12 +44,17 @@
         </div>
       </el-form-item>
       <el-form-item label="旧密码" v-if="isChangingPassword">
-        <el-input v-model="userInfo.oldPassword" type="password"></el-input>
+        <el-input
+          v-model="userInfo.oldPassword"
+          type="password"
+          placeholder="初始密码为邮箱账号"
+        ></el-input>
       </el-form-item>
       <el-form-item label="新密码" v-if="isChangingPassword">
         <el-input v-model="userInfo.newPassword" type="password"></el-input>
       </el-form-item>
-      <el-form-item>
+      <el-form-item
+        >-
         <el-button
           type="primary"
           @click="savePassword"
@@ -104,7 +109,7 @@ export default {
       }
 
       request
-        .get(`/user/information`)
+        .get(`/users/information`)
         .then((response) => {
           if (response.code === 200) {
             const { name, avatar, profile, email } = response.data;
@@ -126,7 +131,7 @@ export default {
     },
     saveNickname() {
       request
-        .put(`/user/name?name=${this.userInfo.nickname}`)
+        .put(`/users/name?name=${this.userInfo.nickname}`)
         .then((response) => {
           // 处理修改昵称成功逻辑
           console.log("昵称修改成功");
@@ -140,7 +145,7 @@ export default {
     },
     saveProfile() {
       request
-        .put(`/user/profile?profile=${this.userInfo.profile}`)
+        .put(`/users/profile?profile=${this.userInfo.profile}`)
         .then((response) => {
           // 处理修改个人简介成功逻辑
           console.log("个人简介修改成功");
@@ -154,7 +159,7 @@ export default {
     },
     savePassword() {
       request
-        .put("/user/change/password", {
+        .put("/users/change/password", {
           prePassword: String(this.userInfo.oldPassword),
           newPassword: String(this.userInfo.newPassword),
         })
@@ -184,7 +189,7 @@ export default {
         const formData = new FormData();
         formData.append("avatar", file);
         request
-          .post("/user/uploadAvatar", formData)
+          .post("/users/uploadAvatar", formData)
           .then((response) => {
             // 更新用户头像信息
             this.userInfo.avatar = response.data.avatarUrl;
@@ -206,7 +211,7 @@ export default {
       })
         .then(() => {
           request
-            .post("/user/logout")
+            .post("/users/logout")
             .then((response) => {
               // 注销成功，清除token和用户信息
               localStorage.removeItem("accessToken");
