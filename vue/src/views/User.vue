@@ -93,6 +93,9 @@ export default {
   created() {
     this.fetchUserInformation();
   },
+  activated() {
+    this.fetchUserInformation();
+  },
   methods: {
     fetchUserInformation() {
       // 从本地存储获取参数
@@ -136,6 +139,7 @@ export default {
           // 处理修改昵称成功逻辑
           console.log("昵称修改成功");
           this.$message.success("昵称修改成功");
+          this.fetchUserInformation();
         })
         .catch((error) => {
           // 处理修改昵称失败逻辑
@@ -150,6 +154,7 @@ export default {
           // 处理修改个人简介成功逻辑
           console.log("个人简介修改成功");
           this.$message.success("个人简介修改成功");
+          this.fetchUserInformation();
         })
         .catch((error) => {
           // 处理修改个人简介失败逻辑
@@ -210,10 +215,9 @@ export default {
           .then((response) => {
             if (response.code === 200) {
               this.userInfo.avatar =
-                response.data?.url || response.data || this.userInfo.avatar;
+                response.data?.url || response.msg || this.userInfo.avatar;
               this.$message.success("头像上传成功");
             } else {
-              a;
               throw new Error(response.msg || "头像上传失败");
             }
           })

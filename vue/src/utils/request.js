@@ -70,12 +70,13 @@ request.interceptors.response.use(
           if (refreshToken) {
             // 发送刷新 token 的请求
             const refreshResponse = await axios.post(
-              `${request.defaults.baseURL}/user/refreshToken`,
+              `${request.defaults.baseURL}/user/refresh`,
               {
                 refreshToken,
               }
             );
-            const { accessToken, newRefreshToken } = refreshResponse.data;
+            const { accessToken, refreshToken: newRefreshToken } =
+              refreshResponse.data;
             // 更新本地存储的 token
             localStorage.setItem("accessToken", accessToken);
             if (newRefreshToken) {
