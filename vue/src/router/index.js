@@ -6,6 +6,7 @@ import LinkDetail from "@/views/LinkDetail.vue";
 import ShortLinkList from "@/views/ShortLinkList.vue";
 import Login from "@/views/Login.vue";
 import User from "@/views/User.vue";
+import Tag from "@/views/Tag.vue"
 
 Vue.use(VueRouter);
 
@@ -43,6 +44,11 @@ const routes = [
         name: "User",
         component: User,
       },
+      {
+        path: "/Tag",
+        name: "Tag",
+        component: Tag,
+      },
     ],
   },
 ];
@@ -53,16 +59,16 @@ const router = new VueRouter({
   routes,
 });
 
-// 添加全局前置守卫
-router.beforeEach((to, from, next) => {
-  const accessToken = localStorage.getItem("accessToken");
-  if (!accessToken) {
-    // 没有 token，跳转到登录页面
-    next("/login");
-  } else {
-    // 否则继续导航
-    next();
-  }
-});
+// // 添加全局前置守卫
+// router.beforeEach((to, from, next) => {
+//   const accessToken = localStorage.getItem("accessToken");
+//   if (!accessToken) {
+//     // 没有 token，跳转到登录页面
+//     next("/login");
+//   } else {
+//     // 否则继续导航
+//     next();
+//   }
+// });
 
 export default router;

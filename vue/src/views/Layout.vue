@@ -42,6 +42,10 @@
               <span slot="title">短链管理</span>
             </el-menu-item>
 
+            <el-menu-item index="/Tag">
+              <span slot="title">标签管理</span>
+            </el-menu-item>
+
             <el-menu-item index="/user">
               <span slot="title">我的信息</span>
             </el-menu-item>
