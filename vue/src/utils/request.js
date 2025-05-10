@@ -11,7 +11,10 @@ const request = axios.create({
 // 比如统一加token，对请求参数统一加密
 request.interceptors.request.use(
   (config) => {
-    config.headers["Content-Type"] = "application/json;charset=utf-8";
+    // 只有未设置 Content-Type 的请求才设置默认值
+    if (!config.headers["Content-Type"] && !(config.data instanceof FormData)) {
+      config.headers["Content-Type"] = "application/json;charset=utf-8";
+    }
     // 从本地存储中获取 accessToken
     const accessToken = localStorage.getItem("accessToken");
     const accessToken2 = localStorage.getItem("templeAccessToken"); //临时token

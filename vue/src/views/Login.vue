@@ -9,7 +9,9 @@
         :rules="loginFormRules"
       >
         <h2 class="title">登录</h2>
-
+        <span class="hint-text" v-if="!isPasswordLogin"
+          >（用户初次使用该方式视为注册，密码需要到个人信息页面设置）</span
+        >
         <el-form-item label="邮箱" prop="email">
           <el-input v-model="loginForm.email"></el-input>
         </el-form-item>
@@ -27,9 +29,6 @@
           </el-button>
         </el-form-item>
         <el-form-item>
-          <span class="hint-text"
-            >（用户初次使用该方式视为注册，密码需要到个人信息页面设置）</span
-          >
           <el-button type="primary" @click="submitLogin">登录</el-button>
           <el-button @click="toggleLoginType">
             切换到 {{ isPasswordLogin ? "验证码登录" : "密码登录" }}
@@ -65,8 +64,13 @@
                 : "发送验证码"
             }}
           </el-button>
-          <el-button @click="submitVerifyCode">提交验证码</el-button>
-        </el-form-item>
+          <el-button type="primary" @click="submitVerifyCode"
+            >提交验证码</el-button
+          >
+          <el-button v-if="!isNewPasswordInputVisible" @click="showLoginForm"
+            >返回登录</el-button
+          ></el-form-item
+        >
         <el-form-item
           v-if="isNewPasswordInputVisible"
           label="新密码"
@@ -77,7 +81,7 @@
             type="password"
           ></el-input>
         </el-form-item>
-        <el-form-item>
+        <el-form-item v-if="isNewPasswordInputVisible">
           <el-button type="primary" @click="submitResetPassword"
             >重置密码</el-button
           >
@@ -198,18 +202,22 @@ export default {
             password: this.loginForm.password,
           })
           .then((response) => {
-            const { refreshToken, accessToken } = response.data;
-            //删去临时token
-            localStorage.removeItem("templeAccessToken");
-            // 存储 refreshToken 到 localStorage
-            localStorage.setItem("refreshToken", refreshToken);
-            // 存储 accessToken 到 localStorage
-            localStorage.setItem("accessToken", accessToken);
-            // 存储用户信息到 localStorage
-            localStorage.setItem("userEmail", this.loginForm.email);
-            this.$message.success("登录成功");
-            // 页面跳转
-            this.$router.push("/create");
+            if (response.code === 200) {
+              const { refreshToken, accessToken } = response.data;
+              //删去临时token
+              localStorage.removeItem("templeAccessToken");
+              // 存储 refreshToken 到 localStorage
+              localStorage.setItem("refreshToken", refreshToken);
+              // 存储 accessToken 到 localStorage
+              localStorage.setItem("accessToken", accessToken);
+              // 存储用户信息到 localStorage
+              localStorage.setItem("userEmail", this.loginForm.email);
+              this.$message.success("登录成功");
+              // 页面跳转
+              this.$router.push("/create");
+            } else {
+              this.$message.error(response.msg);
+            }
           })
           .catch((error) => {
             // 处理登录失败逻辑
@@ -224,21 +232,27 @@ export default {
             verificationCode: this.loginForm.verificationCode,
           })
           .then((response) => {
-            const { refreshToken, accessToken } = response.data;
-            // 存储 refreshToken 到 localStorage
-            localStorage.setItem("refreshToken", refreshToken);
-            // 存储 accessToken 到 localStorage
-            localStorage.setItem("accessToken", accessToken);
-            // 存储用户信息到 localStorage
-            localStorage.setItem("userEmail", this.loginForm.email);
-            this.$message.success("登录成功");
-            // 页面跳转
-            this.$router.push("/create");
+            if (response.code === 200) {
+              const { refreshToken, accessToken } = response.data;
+              //删去临时token
+              localStorage.removeItem("templeAccessToken");
+              // 存储 refreshToken 到 localStorage
+              localStorage.setItem("refreshToken", refreshToken);
+              // 存储 accessToken 到 localStorage
+              localStorage.setItem("accessToken", accessToken);
+              // 存储用户信息到 localStorage
+              localStorage.setItem("userEmail", this.loginForm.email);
+              this.$message.success("登录成功");
+              // 页面跳转
+              this.$router.push("/create");
+            } else {
+              this.$message.error(response.msg);
+            }
           })
           .catch((error) => {
             // 处理登录失败逻辑
             console.log(error);
-            this.$message.error("登录失败，请检查邮箱和验证码");
+            this.$message.error("登陆失败！");
           });
       }
     },
@@ -250,6 +264,64 @@ export default {
       this.isSendingCode = false;
       this.countdown = 60;
       this.loginForm.verificationCode = "";
+
+      // 重置表单校验状态
+      this.resetLoginFormValidation();
+    },
+
+    showForgotPassword() {
+      // 先重置登录表单校验
+      this.resetLoginFormValidation();
+
+      this.isLoginFormVisible = false;
+      this.isForgotPasswordFormVisible = true;
+      this.isNewPasswordInputVisible = false;
+
+      // 重置忘记密码表单
+      this.$nextTick(() => {
+        this.resetForgotPasswordFormValidation();
+        this.forgotPasswordForm = {
+          email: this.loginForm.email, // 保留邮箱
+          verificationCode: "",
+          newPassword: "",
+        };
+      });
+    },
+
+    showLoginForm() {
+      // 先重置忘记密码表单校验
+      this.resetForgotPasswordFormValidation();
+
+      this.isLoginFormVisible = true;
+      this.isForgotPasswordFormVisible = false;
+      this.isNewPasswordInputVisible = false;
+
+      // 重置登录表单
+      this.$nextTick(() => {
+        this.resetLoginFormValidation();
+      });
+    },
+
+    // 新增方法：重置登录表单校验
+    resetLoginFormValidation() {
+      this.$nextTick(() => {
+        if (this.$refs.loginFormRef) {
+          this.$refs.loginFormRef.clearValidate();
+          // 如果想同时重置字段值，可以使用：
+          // this.$refs.loginFormRef.resetFields();
+        }
+      });
+    },
+
+    // 重置忘记密码表单校验
+    resetForgotPasswordFormValidation() {
+      this.$nextTick(() => {
+        if (this.$refs.forgotPasswordFormRef) {
+          this.$refs.forgotPasswordFormRef.clearValidate();
+          // 如果想同时重置字段值，可以使用：
+          // this.$refs.forgotPasswordFormRef.resetFields();
+        }
+      });
     },
 
     // 登录验证码
@@ -260,17 +332,22 @@ export default {
         .post(`/users/email?email=${this.loginForm.email}`)
         .then((response) => {
           // 处理发送验证码成功逻辑
-          this.$message.success("验证码已发送");
-          this.sentCodeTime = Date.now();
-          let timer = setInterval(() => {
-            if (this.countdown > 0) {
-              this.countdown--;
-            } else {
-              clearInterval(timer);
-              this.isSendingCode = false;
-              this.countdown = 60;
-            }
-          }, 1000);
+          if (response.code === 200) {
+            this.$message.success("验证码已发送");
+            this.sentCodeTime = Date.now();
+            let timer = setInterval(() => {
+              if (this.countdown > 0) {
+                this.countdown--;
+              } else {
+                clearInterval(timer);
+                this.isSendingCode = false;
+                this.countdown = 60;
+              }
+            }, 1000);
+          } else {
+            this.isSendingCode = false;
+            this.$message.error(response.msg);
+          }
         })
         .catch((error) => {
           // 处理发送验证码失败逻辑
@@ -278,11 +355,6 @@ export default {
           this.isSendingCode = false;
           this.countdown = 60;
         });
-    },
-
-    showForgotPassword() {
-      this.isLoginFormVisible = false;
-      this.isForgotPasswordFormVisible = true;
     },
 
     //通过验证码登录
@@ -306,6 +378,7 @@ export default {
               }
             }, 1000);
           } else {
+            this.isSendingVerifyCode = false;
             this.$message.error(response.msg);
           }
         })
@@ -318,32 +391,42 @@ export default {
     },
 
     submitVerifyCode() {
-      if (this.forgotPasswordForm.verificationCode.length !== 6) {
-        this.$message.error("请输入6位验证码！");
-        return;
-      }
-      request
-        .put("/users/verify", {
-          email: this.forgotPasswordForm.email,
-          verificationCode: this.forgotPasswordForm.verificationCode,
-        })
-        .then((response) => {
-          // 处理重置密码成功逻辑
-          if (response.code === 200) {
-            this.isNewPasswordInputVisible = true;
-            //存储临时token
-            localStorage.setItem(
-              "templeAccessToken",
-              response.data.accessToken
-            );
-          } else {
-            this.$message.error(response.msg);
+      this.$refs.forgotPasswordFormRef.validate((valid) => {
+        if (valid) {
+          // 检查验证码是否过期
+          const currentTime = Date.now();
+          if (
+            this.verifyCodeTime &&
+            currentTime - this.verifyCodeTime > 60 * 1000
+          ) {
+            this.$message.error("验证码已过期，请重新获取");
+            return;
           }
-        })
-        .catch((error) => {
-          // 处理重置密码失败逻辑
-          console.log(error);
-        });
+
+          request
+            .put("/users/verify", {
+              email: this.forgotPasswordForm.email,
+              verificationCode: this.forgotPasswordForm.verificationCode,
+            })
+            .then((response) => {
+              if (response.code === 200) {
+                this.isNewPasswordInputVisible = true;
+                localStorage.setItem(
+                  "templeAccessToken",
+                  response.data.accessToken
+                );
+              } else {
+                this.$message.error(response.msg);
+              }
+            })
+            .catch((error) => {
+              console.log(error);
+            });
+        } else {
+          console.log("表单校验不通过");
+          return false;
+        }
+      });
     },
     resetPassword() {
       request
@@ -363,11 +446,6 @@ export default {
           // 处理重置密码失败逻辑
           console.log(error);
         });
-    },
-
-    showLoginForm() {
-      this.isLoginFormVisible = true;
-      this.isForgotPasswordFormVisible = false;
     },
   },
 };

@@ -53,8 +53,7 @@
       <el-form-item label="新密码" v-if="isChangingPassword">
         <el-input v-model="userInfo.newPassword" type="password"></el-input>
       </el-form-item>
-      <el-form-item
-        >-
+      <el-form-item>
         <el-button
           type="primary"
           @click="savePassword"
@@ -64,7 +63,8 @@
         <el-button @click="toggleChangePassword">
           {{ isChangingPassword ? "取消修改密码" : "修改密码" }}
         </el-button>
-        <el-button @click="showLogoutConfirm">注销</el-button>
+        <el-button @click="showLogoutConfirm">退出登录</el-button>
+        <el-button @click="showZhuxiaoConfirm">注销账号</el-button>
       </el-form-item>
     </el-form>
   </div>
@@ -165,9 +165,14 @@ export default {
         })
         .then((response) => {
           // 处理修改密码成功逻辑
-          this.isChangingPassword = false;
-          console.log("密码修改成功");
-          this.$message.success("密码修改成功");
+          if (response.code === 200) {
+            this.isChangingPassword = false;
+            this.$message.success("密码修改成功");
+          } else {
+            this.userInfo.newPassword = "";
+            this.userInfo.oldPassword = "";
+            this.$message.error(response.msg);
+          }
         })
         .catch((error) => {
           // 处理修改密码失败逻辑
@@ -176,6 +181,8 @@ export default {
         });
     },
     toggleChangePassword() {
+      this.userInfo.newPassword = "";
+      this.userInfo.oldPassword = "";
       this.isChangingPassword = !this.isChangingPassword;
     },
     // 触发文件上传选择框
@@ -183,27 +190,42 @@ export default {
       document.getElementById("avatarInput").click();
     },
     // 处理头像上传
+    // 处理头像上传
     handleAvatarUpload(event) {
       const file = event.target.files[0];
       if (file) {
         const formData = new FormData();
-        formData.append("avatar", file);
+        formData.append("multipartFile", file);
+
+        // 添加调试信息
+        for (let [key, value] of formData.entries()) {
+          console.log(key, value);
+        }
         request
-          .post("/users/uploadAvatar", formData)
+          .put("/users/avatar", formData, {
+            headers: {
+              "Content-Type": "multipart/form-data", // 显式设置 Content-Type
+            },
+          })
           .then((response) => {
-            // 更新用户头像信息
-            this.userInfo.avatar = response.data.avatarUrl;
-            console.log("头像上传成功");
-            this.$message.success("头像上传成功");
+            if (response.code === 200) {
+              this.userInfo.avatar =
+                response.data?.url || response.data || this.userInfo.avatar;
+              this.$message.success("头像上传成功");
+            } else {
+              a;
+              throw new Error(response.msg || "头像上传失败");
+            }
           })
           .catch((error) => {
-            console.log(error);
-            this.$message.error("头像上传失败");
+            console.error("头像上传错误:", error);
+            this.$message.error(error.msg || "头像上传失败");
+            this.fetchUserInformation();
           });
       }
     },
     // 显示注销确认弹窗
-    showLogoutConfirm() {
+    showZhuxiaoConfirm() {
       MessageBox.confirm("确定要注销账号吗？", "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
@@ -213,18 +235,42 @@ export default {
           request
             .post("/users/logout")
             .then((response) => {
-              // 注销成功，清除token和用户信息
-              localStorage.removeItem("accessToken");
-              localStorage.removeItem("refreshToken");
-              localStorage.removeItem("userEmail");
-              // 跳转到登录页面
-              this.$router.push("/login");
+              if (response.code === 200) {
+                // 注销成功，清除token和用户信息
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("refreshToken");
+                localStorage.removeItem("userEmail");
+                // 跳转到登录页面
+                this.$router.push("/login");
+              } else {
+                this.$message.error(response.msg);
+              }
             })
             .catch((error) => {
               // 处理注销失败逻辑
               console.log(error);
               this.$message.error("注销失败");
             });
+        })
+        .catch(() => {
+          // 用户取消操作
+        });
+    },
+
+    showLogoutConfirm() {
+      MessageBox.confirm("确定要退出登录吗？", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          //清除token和用户信息
+          //仅为前端简易实现的退出登录
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("userEmail");
+          // 跳转到登录页面
+          this.$router.push("/login");
         })
         .catch(() => {
           // 用户取消操作
@@ -278,5 +324,6 @@ export default {
 .email-display {
   display: inline-block;
   text-align: left;
+  width: 100%;
 }
 </style>
