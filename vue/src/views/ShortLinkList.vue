@@ -124,7 +124,7 @@
           <el-button
               type="primary"
               size="mini"
-              @click="handleShowDetail(row.id)"
+              @click="handleShowDetail(row)"
           >详情</el-button>
 
           <el-popconfirm
@@ -150,7 +150,7 @@
           style="margin-top: 20px;"
       >
         <div class="detail-header">
-          <h3>短链详情（ID: {{ activeDetail.id }}）</h3>
+          <h3>短链详情（title: {{ activeDetail.title }}）</h3>
           <el-button
               icon="el-icon-close"
               circle
@@ -160,11 +160,16 @@
         </div>
 
         <!-- 集成LinkDetail的核心表单 -->
-        <el-form label-width="120px">
-          <el-form-item label="允许访问次数">
+        <el-form
+            :model="activeDetail"
+            :rules="detailRules"
+            ref="detailForm"
+            label-width="120px">
+          <el-form-item label="允许访问次数" prop="allowNum">
             <el-input-number
                 v-model="activeDetail.allowNum"
                 :min="0"
+                controls-position="right"
             />
           </el-form-item>
 
@@ -238,7 +243,15 @@ export default {
   name: 'ShortLinkList',
   data() {
     return {
-      activeDetailId: null,
+      activeDetail: null,
+      detailRules: {
+        allowNum: [
+          { type: 'number', min: 0, message: '不能小于0' }
+        ],
+        expireTime: [
+          { validator: this.validateExpireTime }
+        ]
+      },
       loading: false,
       tableData: [],
       total: 0,
@@ -327,7 +340,7 @@ export default {
         if (this.tableData.length === 1 && this.queryParams.pageNum > 1) {
           this.queryParams.pageNum -= 1;
         }
-        this.fetchData();
+        await this.fetchData();
       } catch (error) {
         this.$message.error('删除失败');
       }
@@ -378,10 +391,21 @@ export default {
     // 保存修改
     async saveDetail() {
       try {
-        await request.put(`/shortLink/update/${this.activeDetail.id}`, this.activeDetail);
-        this.$message.success('保存成功');
-        this.fetchData(); // 刷新列表
-      } catch {
+        await this.$refs.detailForm.validate();
+
+        const params = {
+          ...this.activeDetail,
+          password: this.activeDetail.privateTarget
+              ? md5(this.activeDetail.password)
+              : undefined
+        };
+
+        const res = await request.put('/control/shortLink/update', params);
+        if (res.code === 200) {
+          this.$message.success('保存成功');
+          this.fetchData();
+        }
+      } catch (error) {
         this.$message.error('保存失败');
       }
     },
