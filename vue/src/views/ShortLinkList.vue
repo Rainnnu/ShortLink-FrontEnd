@@ -1,3 +1,4 @@
+以下代码有何问题？
 <template>
   <div class="list-container">
     <!-- 搜索和过滤区 -->
@@ -121,9 +122,9 @@
       <el-table-column label="操作" width="150" fixed="right">
         <template #default="{ row }">
           <el-button
-              type="text"
+              type="primary"
               size="mini"
-              @click="showDetail(row)"
+              @click="handleShowDetail(row.id)"
           >详情</el-button>
 
           <el-popconfirm
@@ -132,9 +133,8 @@
           >
             <template #reference>
               <el-button
-                  type="text"
+                  type="danger"
                   size="mini"
-                  style="color: #F56C6C"
               >删除</el-button>
             </template>
           </el-popconfirm>
@@ -142,7 +142,62 @@
       </el-table-column>
     </el-table>
 
-    <!-- 分页 -->
+    <!-- 短链详情卡片 -->
+    <transition name="el-zoom-in-top">
+      <el-card
+          v-if="activeDetail"
+          class="detail-card"
+          style="margin-top: 20px;"
+      >
+        <div class="detail-header">
+          <h3>短链详情（ID: {{ activeDetail.id }}）</h3>
+          <el-button
+              icon="el-icon-close"
+              circle
+              @click="activeDetail = null"
+              class="close-btn"
+          />
+        </div>
+
+        <!-- 集成LinkDetail的核心表单 -->
+        <el-form label-width="120px">
+          <el-form-item label="允许访问次数">
+            <el-input-number
+                v-model="activeDetail.allowNum"
+                :min="0"
+            />
+          </el-form-item>
+
+          <el-form-item label="过期时间">
+            <el-date-picker
+                v-model="activeDetail.expireTime"
+                type="datetime"
+                value-format="timestamp"
+            />
+          </el-form-item>
+
+          <el-form-item label="私密链接">
+            <el-switch v-model="activeDetail.privateTarget" />
+          </el-form-item>
+
+          <el-form-item v-if="activeDetail.privateTarget" label="访问密码">
+            <el-input
+                v-model="activeDetail.password"
+                type="password"
+                show-password
+            />
+          </el-form-item>
+        </el-form>
+
+        <!-- 操作按钮 -->
+        <div class="action-btns">
+          <el-button type="primary" @click="saveDetail">保存</el-button>
+          <el-button @click="resetDetail">重置</el-button>
+        </div>
+      </el-card>
+    </transition>
+
+    <!-- 分页组件 -->
     <el-pagination
         background
         :current-page="queryParams.pageNum"
@@ -177,12 +232,13 @@
 </template>
 
 <script>
-import axios from 'axios';
+import request from '@/utils/request';
 
 export default {
   name: 'ShortLinkList',
   data() {
     return {
+      activeDetailId: null,
       loading: false,
       tableData: [],
       total: 0,
@@ -217,34 +273,60 @@ export default {
     async fetchData() {
       try {
         this.loading = true;
-        const res = await axios.get('/shortLink/list', {
-          params: this.queryParams,
+        // 确保参数格式正确（多选标签转为逗号分隔）
+        const params = {
+          ...this.queryParams,
+          tags: this.queryParams.tags.join(',') // 数组转字符串
+        };
+
+        const res = await request.get('/shortLink/list', {
+          params,
           headers: { accessToken: localStorage.getItem("accessToken") }
         });
 
-        if (res.data.code === 0) {
-          this.tableData = res.data.data.list;
-          this.total = res.data.data.total;
+        if (res.code === 200) {
+          this.tableData = res.data.list;
+          this.total = res.data.total || 0; // ✅ 绑定正确的总条数
+
+          this.queryParams.pageNum = res.data.pageNum;
         }
+      } catch (error) {
+        this.$message.error("加载失败");
       } finally {
         this.loading = false;
       }
     },
 
     async fetchTags() {
-      // 调用之前实现的标签查询接口
-      const res = await axios.get('/tag/get', {
-        headers: { accessToken: localStorage.getItem("accessToken") }
-      });
-      this.tagOptions = res.data.data || [];
+      try {
+        const res = await request.get('/tag/get',{
+
+          headers:{ accessToken: localStorage.getItem('accessToken') }
+        });
+        // 处理可能的空值
+        if (res && res.data) {
+          this.tagOptions = res.data.data || [];
+        } else {
+          this.tagOptions = [];
+          console.error('标签接口返回数据异常:', res);
+        }
+      } catch (error) {
+        console.error('获取标签失败:', error);
+        this.tagOptions = [];
+      }
     },
 
     async handleDelete(id) {
       try {
-        await axios.delete(`/delete/shortLink/${id}`, {
+        await request.delete(`/delete/shortLink/${id}`, {
           headers: { accessToken: localStorage.getItem("accessToken") }
         });
         this.$message.success('删除成功');
+
+        // 删除后检查当前页是否为空
+        if (this.tableData.length === 1 && this.queryParams.pageNum > 1) {
+          this.queryParams.pageNum -= 1;
+        }
         this.fetchData();
       } catch (error) {
         this.$message.error('删除失败');
@@ -262,7 +344,7 @@ export default {
 
     async verifyPassword() {
       try {
-        const res = await axios.post('/shortLink/verifyPassword', {
+        const res = await request.post('/shortLink/verifyPassword', {
           shortLink: this.currentLink.shortUrl,
           password: this.password
         }, {
@@ -283,13 +365,35 @@ export default {
     accessLink(url) {
       window.open(url, '_blank');
       // 记录访问统计
-      axios.get(`/sparrow/${this.currentLink.shortUrl}`, {
+      request.get(`/sparrow/${this.currentLink.shortUrl}`, {
         headers: { accessToken: localStorage.getItem("accessToken") }
       });
     },
 
+    // 显示详情
+    handleShowDetail(row) {
+      this.activeDetail = { ...row }; // 克隆行数据
+    },
+
+    // 保存修改
+    async saveDetail() {
+      try {
+        await request.put(`/shortLink/update/${this.activeDetail.id}`, this.activeDetail);
+        this.$message.success('保存成功');
+        this.fetchData(); // 刷新列表
+      } catch {
+        this.$message.error('保存失败');
+      }
+    },
+
+    // 重置修改
+    resetDetail() {
+      this.activeDetail = { ...this.tableData.find(item => item.id === this.activeDetail.id) };
+    },
+
     handleSizeChange(val) {
       this.queryParams.pageSize = val;
+      this.queryParams.pageNum = 1;
       this.fetchData();
     },
 
@@ -337,7 +441,24 @@ export default {
   justify-content: flex-end;
 }
 
-/*::v-deep .el-table__row td {*/
-/*  vertical-align: top;*/
-/*}*/
+.detail-card {
+  position: sticky;
+  bottom: 20px;
+  background: #fff;
+  z-index: 100;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.action-btns {
+  text-align: center;
+  margin-top: 20px;
+}
+
 </style>
