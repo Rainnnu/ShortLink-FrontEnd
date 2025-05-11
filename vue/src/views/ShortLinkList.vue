@@ -1,4 +1,3 @@
-以下代码有何问题？
 <template>
   <div class="list-container">
     <!-- 搜索和过滤区 -->
@@ -119,13 +118,19 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
           <el-button
               type="primary"
               size="mini"
               @click="handleShowDetail(row)"
           >详情</el-button>
+
+          <el-button
+              type="primary"
+              size="mini"
+              @click="openChangePasswordDialog(row)"
+          >修改密码</el-button>
 
           <el-popconfirm
               title="确认删除该短链吗？"
@@ -135,6 +140,7 @@
               <el-button
                   type="danger"
                   size="mini"
+                  style="margin-left: 10px"
               >删除</el-button>
             </template>
           </el-popconfirm>
@@ -190,6 +196,7 @@
                 v-model="activeDetail.password"
                 type="password"
                 show-password
+                placeholder="设置新密码"
             />
           </el-form-item>
         </el-form>
@@ -233,16 +240,62 @@
         <el-button type="primary" @click="verifyPassword">确认</el-button>
       </span>
     </el-dialog>
+
+    <el-dialog
+        title="修改密码"
+        :visible.sync="changePwdDialogVisible"
+        width="400px"
+    >
+      <el-form :model="pwdForm" :rules="pwdRules" ref="pwdFormRef">
+        <el-form-item label="旧密码" prop="oldPassword">
+          <el-input
+              v-model="pwdForm.oldPassword"
+              type="password"
+              show-password
+              placeholder="请输入原密码"
+          />
+        </el-form-item>
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input
+              v-model="pwdForm.newPassword"
+              type="password"
+              show-password
+              placeholder="6-20位字符"
+          />
+        </el-form-item>
+      </el-form>
+      <span slot="footer">
+    <el-button @click="changePwdDialogVisible = false">取消</el-button>
+    <el-button type="primary" @click="handleChangePassword">确认修改</el-button>
+  </span>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import request from '@/utils/request';
+import md5 from 'js-md5';
+
+const API_MAP = {
+  expireTime: '/control/shortLink/deadTime',
+  allowNum: '/control/shortLink/visitNum',
+  privateTarget: '/control/shortLink/private',
+  password: '/control/shortLink/changePwd'
+};
 
 export default {
   name: 'ShortLinkList',
   data() {
     return {
+      pwdRules: {
+        oldPassword: [
+          { required: true, message: '必须输入旧密码', trigger: 'blur' }
+        ],
+        newPassword: [
+          { required: true, message: '必须输入新密码', trigger: 'blur' },
+          { min: 6, max: 20, message: '密码长度6-20位', trigger: 'blur' }
+        ]
+      },
       activeDetail: null,
       detailRules: {
         allowNum: [
@@ -250,7 +303,26 @@ export default {
         ],
         expireTime: [
           { validator: this.validateExpireTime }
+        ],
+        password: [
+          {
+            validator: (rule, value, callback) => {
+              // 仅在启用私密时校验
+              if (this.activeDetail.privateTarget && !value) {
+                callback(new Error('启用私密必须设置密码'));
+              } else {
+                callback();
+              }
+            },
+            trigger: 'blur'
+          }
         ]
+      },
+      changePwdDialogVisible: false,
+      pwdForm: {
+        id: '',
+        oldPassword: '',
+        newPassword: ''
       },
       loading: false,
       tableData: [],
@@ -288,9 +360,13 @@ export default {
         this.loading = true;
         // 确保参数格式正确（多选标签转为逗号分隔）
         const params = {
-          ...this.queryParams,
-          tags: this.queryParams.tags.join(',') // 数组转字符串
+          pageNum: this.queryParams.pageNum,
+          pageSize: this.queryParams.pageSize,
+          keyword: this.queryParams.keyword,
+          tags: this.queryParams.tags,
+          status: this.queryParams.status
         };
+        console.log(params)
 
         const res = await request.get('/shortLink/list', {
           params,
@@ -299,9 +375,9 @@ export default {
 
         if (res.code === 200) {
           this.tableData = res.data.list;
-          this.total = res.data.total || 0; // ✅ 绑定正确的总条数
-
+          this.total = res.data.total || 0;
           this.queryParams.pageNum = res.data.pageNum;
+          this.queryParams.pageSize = res.data.pageSize;
         }
       } catch (error) {
         this.$message.error("加载失败");
@@ -392,21 +468,120 @@ export default {
     async saveDetail() {
       try {
         await this.$refs.detailForm.validate();
+        const originalData = this.tableData.find(item => item.id === this.activeDetail.id);
+        const changedFields = this.getChangedFields(originalData);
 
-        const params = {
-          ...this.activeDetail,
-          password: this.activeDetail.privateTarget
-              ? md5(this.activeDetail.password)
-              : undefined
-        };
+        // 批量调用接口
+        const requests = changedFields.map(field => this.callSpecificApi(field));
+        await Promise.all(requests);
 
-        const res = await request.put('/control/shortLink/update', params);
+        this.$message.success('保存成功');
+        await this.fetchData();
+      } catch (error) {
+        this.$message.error(`保存失败: ${error.message}`);
+      }
+    },
+
+    // getChangedFields(original) {
+    //   let fields = Object.keys(API_MAP).filter(key =>
+    //       JSON.stringify(this.activeDetail[key]) !== JSON.stringify(original[key])
+    //   );
+    //
+    //   // 排除密码单独修改的情况
+    //   if (fields.includes('password')) {
+    //     fields = fields.filter(f => f !== 'privateTarget');
+    //   }
+    //   return fields;
+    // },
+    getChangedFields(original) {
+      // 只检测以下字段变化
+      const compareFields = ['expireTime', 'allowNum', 'privateTarget'];
+      return compareFields.filter(key =>
+          this.activeDetail[key] !== original[key]
+      );
+    },
+
+    async callSpecificApi(field) {
+      const apiPath = API_MAP[field];
+      const params = this.buildParamsByField(field);
+      const res = await request.put(apiPath, params);
+
+      if (res.code !== 200) throw new Error(res.msg || '接口异常');
+    },
+
+// 在 methods 中添加以下方法
+    buildParamsByField(field) {
+      const baseParams = { id: this.activeDetail.id };
+
+      switch (field) {
+          // 过期时间
+        case 'expireTime':
+          return {
+            ...baseParams,
+            expireTime: this.activeDetail.expireTime
+          };
+
+          // 访问次数
+        case 'allowNum':
+          return {
+            ...baseParams,
+            allowNum: this.activeDetail.allowNum
+          };
+
+          // 私密状态（需校验密码）
+        case 'privateTarget':
+          if (this.activeDetail.privateTarget) {
+            if (!this.activeDetail.password) {
+              throw new Error('启用私密必须设置密码');
+            }
+            if (this.activeDetail.password.length < 4 || this.activeDetail.password.length >12) { // ✅ 添加长度校验
+              throw new Error('请输入4-12位密码');
+            }
+          }
+          return {
+            ...baseParams,
+            privateTarget: this.activeDetail.privateTarget,
+            password: md5(this.activeDetail.password) // 新密码直接加密
+          };
+
+          // 密码修改（参数名转换 newPassword）
+        // case 'password':
+        //   if (this.activeDetail.password.length < 6) {
+        //     throw new Error('密码至少6位');
+        //   }
+        //   return {
+        //     ...baseParams,
+        //     oldPassword: md5(this.oldPassword),      // 新增旧密码字段
+        //     newPassword: md5(this.activeDetail.password)
+        //   };
+
+        default:
+          throw new Error('未知字段类型');
+      }
+    },
+
+    openChangePasswordDialog(row) {
+      this.pwdForm.id = row.id;
+      this.changePwdDialogVisible = true;
+    },
+
+    async handleChangePassword() {
+      try {
+        console.log(this.pwdForm.oldPassword)
+        console.log(this.pwdForm.newPassword)
+        const res = await request.put('/control/shortLink/changePwd', {
+          id: this.pwdForm.id,
+          oldPassword: md5(this.pwdForm.oldPassword),
+          newPassword: md5(this.pwdForm.newPassword)
+        });
+
         if (res.code === 200) {
-          this.$message.success('保存成功');
-          this.fetchData();
+          this.$message.success('密码修改成功');
+          this.changePwdDialogVisible = false;
+          await this.fetchData();
         }
       } catch (error) {
-        this.$message.error('保存失败');
+        this.$message.error('修改失败: ' + error.response?.data?.msg);
       }
     },
 
