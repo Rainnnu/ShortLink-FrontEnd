@@ -366,7 +366,6 @@ export default {
           tags: this.queryParams.tags,
           status: this.queryParams.status
         };
-        console.log(params)
 
         const res = await request.get('/shortLink/list', {
           params,
@@ -374,10 +373,9 @@ export default {
         });
 
         if (res.code === 200) {
+          console.log('接口返回数据:', res.data);
           this.tableData = res.data.list;
           this.total = res.data.total || 0;
-          this.queryParams.pageNum = res.data.pageNum;
-          this.queryParams.pageSize = res.data.pageSize;
         }
       } catch (error) {
         this.$message.error("加载失败");
@@ -571,7 +569,7 @@ export default {
         console.log(this.pwdForm.newPassword)
         const res = await request.put('/control/shortLink/changePwd', {
           id: this.pwdForm.id,
-          oldPassword: md5(this.pwdForm.oldPassword),
+          password: md5(this.pwdForm.oldPassword),
           newPassword: md5(this.pwdForm.newPassword)
         });
 
