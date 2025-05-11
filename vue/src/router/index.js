@@ -6,7 +6,7 @@ import LinkDetail from "@/views/LinkDetail.vue";
 import ShortLinkList from "@/views/ShortLinkList.vue";
 import Login from "@/views/Login.vue";
 import User from "@/views/User.vue";
-// import Tag from "@/views/Tag.vue";
+import Tag from "@/views/Tag.vue";
 
 Vue.use(VueRouter);
 
@@ -44,11 +44,11 @@ const routes = [
         name: "User",
         component: User,
       },
-      // {
-      //   path: "/Tag",
-      //   name: "Tag",
-      //   component: Tag,
-      // },
+      {
+        path: "/Tag",
+        name: "Tag",
+        component: Tag,
+      },
     ],
   },
 ];
