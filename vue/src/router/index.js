@@ -34,11 +34,11 @@ const routes = [
         name: "ShortLinkList",
         component: ShortLinkList,
       },
-      {
-        path: "/detail",
-        name: "LinkDetail",
-        component: LinkDetail,
-      },
+      // {
+      //   path: "/detail",
+      //   name: "LinkDetail",
+      //   component: LinkDetail,
+      // },
       {
         path: "/user",
         name: "User",
