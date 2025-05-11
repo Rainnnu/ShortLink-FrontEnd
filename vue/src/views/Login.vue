@@ -411,10 +411,7 @@ export default {
             .then((response) => {
               if (response.code === 200) {
                 this.isNewPasswordInputVisible = true;
-                localStorage.setItem(
-                  "templeAccessToken",
-                  response.data.accessToken
-                );
+                localStorage.setItem("templeAccessToken", response.msg);
               } else {
                 this.$message.error(response.msg);
               }
@@ -430,14 +427,15 @@ export default {
     },
     resetPassword() {
       request
-        .put("/users/resetPassword", {
-          password: this.forgotPasswordForm.newPassword,
-        })
+        .put(
+          `/users/resetPassword?password=${this.forgotPasswordForm.newPassword}`
+        )
         .then((response) => {
           // 处理重置密码成功逻辑
           if (response.code === 200) {
             this.isForgotPasswordFormVisible = false;
             this.isLoginFormVisible = true;
+            this.$message.success(response.msg, "请登录");
           } else {
             this.$message.error(response.msg);
           }

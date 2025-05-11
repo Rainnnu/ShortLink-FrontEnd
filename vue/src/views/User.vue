@@ -93,9 +93,7 @@ export default {
   created() {
     this.fetchUserInformation();
   },
-  activated() {
-    this.fetchUserInformation();
-  },
+
   methods: {
     fetchUserInformation() {
       // 从本地存储获取参数
@@ -139,12 +137,16 @@ export default {
           // 处理修改昵称成功逻辑
           console.log("昵称修改成功");
           this.$message.success("昵称修改成功");
-          this.fetchUserInformation();
+          // this.fetchUserInformation();
         })
         .catch((error) => {
           // 处理修改昵称失败逻辑
           console.log(error);
           this.$message.error("昵称修改失败");
+        })
+        .finally(() => {
+          // 重新获取用户信息
+          this.fetchUserInformation();
         });
     },
     saveProfile() {
@@ -154,12 +156,15 @@ export default {
           // 处理修改个人简介成功逻辑
           console.log("个人简介修改成功");
           this.$message.success("个人简介修改成功");
-          this.fetchUserInformation();
         })
         .catch((error) => {
           // 处理修改个人简介失败逻辑
           console.log(error);
           this.$message.error("个人简介修改失败");
+        })
+        .finally(() => {
+          // 重新获取用户信息
+          this.fetchUserInformation();
         });
     },
     savePassword() {
