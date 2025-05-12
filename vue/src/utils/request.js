@@ -56,6 +56,15 @@ request.interceptors.response.use(
     return res;
   },
   async (error) => {
+    if (error.code === "ECONNABORTED") {
+      console.error("请求超时");
+      return Promise.reject(new Error("请求超时，请重试"));
+    }
+
+    if (error.message === "Network Error") {
+      console.error("网络错误，请检查连接");
+      return Promise.reject(new Error("网络连接失败"));
+    }
     const { config, response } = error;
 
     // 处理401 token过期

@@ -130,6 +130,7 @@
           <el-button
             type="primary"
             size="mini"
+            :disabled="!row.hasPassword"
             @click="openChangePasswordDialog(row)"
             >修改密码</el-button
           >
@@ -147,6 +148,13 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 遮罩层 -->
+    <div
+      class="modal-mask"
+      v-if="activeDetail"
+      @click.self="activeDetail = null"
+    ></div>
 
     <!-- 短链详情卡片 -->
     <transition name="el-zoom-in-top">
@@ -354,6 +362,7 @@ export default {
       try {
         this.loading = true;
         // 确保参数格式正确（多选标签转为逗号分隔）
+        console.log(this.queryParams.pageNum);
         const params = {
           pageNum: this.queryParams.pageNum,
           pageSize: this.queryParams.pageSize,
@@ -362,10 +371,7 @@ export default {
           status: this.queryParams.status,
         };
 
-        const res = await request.get("/shortLink/list", {
-          params,
-          headers: { accessToken: localStorage.getItem("accessToken") },
-        });
+        const res = await request.get("/shortLink/list", params);
 
         if (res.code === 200) {
           console.log("接口返回数据:", res.data);
@@ -559,6 +565,10 @@ export default {
     },
 
     openChangePasswordDialog(row) {
+      if (!row.hasPassword) {
+        this.$message.error("该短链未设置密码");
+        return;
+      }
       this.pwdForm.id = row.id;
       this.changePwdDialogVisible = true;
     },
@@ -577,6 +587,8 @@ export default {
           this.$message.success("密码修改成功");
           this.changePwdDialogVisible = false;
           await this.fetchData();
+        } else {
+          this.$message.error(res.msg);
         }
       } catch (error) {
         this.$message.error("修改失败: " + error.response?.data?.msg);
@@ -640,12 +652,29 @@ export default {
   justify-content: flex-end;
 }
 
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5); /* 半透明黑色 */
+  z-index: 99; /* 比卡片低一级 */
+  transition: opacity 0.3s ease;
+}
+
 .detail-card {
-  position: sticky;
-  bottom: 20px;
+  position: fixed; /* 改为fixed定位 */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50%;
+  max-height: 80vh;
+  overflow-y: auto;
   background: #fff;
   z-index: 100;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
 }
 
 .detail-header {
