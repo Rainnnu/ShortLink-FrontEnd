@@ -3,11 +3,11 @@
     <!-- 搜索和过滤区 -->
     <div class="filter-bar">
       <el-input
-          v-model="queryParams.keyword"
-          placeholder="输入标题/长链/短链"
-          clearable
-          class="search-input"
-          @keyup.enter="fetchData"
+        v-model="queryParams.keyword"
+        placeholder="输入标题/长链/短链"
+        clearable
+        class="search-input"
+        @keyup.enter="fetchData"
       >
         <template #prefix>
           <i class="el-icon-search"></i>
@@ -15,133 +15,133 @@
       </el-input>
 
       <el-select
-          v-model="queryParams.tags"
-          multiple
-          filterable
-          placeholder="选择标签"
-          style="width: 240px"
+        v-model="queryParams.tags"
+        multiple
+        filterable
+        placeholder="选择标签"
+        style="width: 240px"
       >
         <el-option
-            v-for="tag in tagOptions"
-            :key="tag.id"
-            :label="tag.name"
-            :value="tag.id"
+          v-for="tag in tagOptions"
+          :key="tag.id"
+          :label="tag.name"
+          :value="tag.id"
         />
       </el-select>
 
       <el-select
-          v-model="queryParams.status"
-          placeholder="选择状态"
-          clearable
-          style="width: 120px"
+        v-model="queryParams.status"
+        placeholder="选择状态"
+        clearable
+        style="width: 120px"
       >
         <el-option
-            v-for="item in statusOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
+          v-for="item in statusOptions"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
         />
       </el-select>
 
-      <el-button
-          type="primary"
-          icon="el-icon-search"
-          @click="fetchData"
-      >查询</el-button>
+      <el-button type="primary" icon="el-icon-search" @click="fetchData"
+        >查询</el-button
+      >
 
-      <el-button
-          icon="el-icon-refresh"
-          @click="resetQuery"
-      >重置</el-button>
+      <el-button icon="el-icon-refresh" @click="resetQuery">重置</el-button>
     </div>
 
     <!-- 数据表格 -->
     <el-table
-        :data="tableData"
-        stripe
-        border
-        v-loading="loading"
-        element-loading-text="加载中..."
-        class="data-table"
+      :data="tableData"
+      stripe
+      border
+      v-loading="loading"
+      element-loading-text="加载中..."
+      class="data-table"
     >
       <el-table-column prop="title" label="标题" min-width="150" />
 
       <el-table-column prop="fullShortUrl" label="短链" width="220">
         <template #default="{ row }">
           <el-tooltip
-              effect="dark"
-              :content="`点击次数: ${row.visits} | 独立IP: ${row.ipNum}`"
-              placement="top"
+            effect="dark"
+            :content="`点击次数: ${row.visits} | 独立IP: ${row.ipNum}`"
+            placement="top"
           >
             <el-link
-                type="primary"
-                :underline="false"
-                @click="handleLinkClick(row)"
-            >{{ row.fullShortUrl }}</el-link>
+              type="primary"
+              :underline="false"
+              @click="handleLinkClick(row)"
+              >{{ row.fullShortUrl }}</el-link
+            >
           </el-tooltip>
           <el-tag
-              v-if="row.hasPassword"
-              size="mini"
-              type="danger"
-              effect="dark"
-              class="link-tag"
-          >加密</el-tag>
+            v-if="row.hasPassword"
+            size="mini"
+            type="danger"
+            effect="dark"
+            class="link-tag"
+            >加密</el-tag
+          >
           <el-tag
-              v-if="row.privateTarget"
-              size="mini"
-              type="warning"
-              effect="dark"
-              class="link-tag"
-          >私有</el-tag>
+            v-if="row.privateTarget"
+            size="mini"
+            type="warning"
+            effect="dark"
+            class="link-tag"
+            >私有</el-tag
+          >
         </template>
       </el-table-column>
 
       <el-table-column label="标签" width="180">
         <template #default="{ row }">
           <el-tag
-              v-for="tag in row.tags"
-              :key="tag"
-              size="mini"
-              class="tag-item"
-          >{{ tag }}</el-tag>
+            v-for="tag in row.tags"
+            :key="tag"
+            size="mini"
+            class="tag-item"
+            >{{ tag }}</el-tag
+          >
         </template>
       </el-table-column>
 
-      <el-table-column prop="longUrl" label="原始链接" min-width="280" show-overflow-tooltip />
+      <el-table-column
+        prop="longUrl"
+        label="原始链接"
+        min-width="280"
+        show-overflow-tooltip
+      />
 
       <el-table-column label="状态" width="100">
         <template #default="{ row }">
-          <el-tag
-              :type="statusMap[row.status].type"
-              size="small"
-          >{{ statusMap[row.status].label }}</el-tag>
+          <el-tag :type="statusMap[row.status].type" size="small">{{
+            statusMap[row.status].label
+          }}</el-tag>
         </template>
       </el-table-column>
 
       <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
-          <el-button
-              type="primary"
-              size="mini"
-              @click="handleShowDetail(row)"
-          >详情</el-button>
+          <el-button type="primary" size="mini" @click="handleShowDetail(row)"
+            >详情</el-button
+          >
 
           <el-button
-              type="primary"
-              size="mini"
-              @click="openChangePasswordDialog(row)"
-          >修改密码</el-button>
+            type="primary"
+            size="mini"
+            @click="openChangePasswordDialog(row)"
+            >修改密码</el-button
+          >
 
           <el-popconfirm
-              title="确认删除该短链吗？"
-              @confirm="handleDelete(row.id)"
+            title="确认删除该短链吗？"
+            @confirm="handleDelete(row.id)"
           >
             <template #reference>
-              <el-button
-                  type="danger"
-                  size="mini"
-                  style="margin-left: 10px"
-              >删除</el-button>
+              <el-button type="danger" size="mini" style="margin-left: 10px"
+                >删除</el-button
+              >
             </template>
           </el-popconfirm>
         </template>
@@ -150,40 +150,37 @@
 
     <!-- 短链详情卡片 -->
     <transition name="el-zoom-in-top">
-      <el-card
-          v-if="activeDetail"
-          class="detail-card"
-          style="margin-top: 20px;"
-      >
+      <el-card v-if="activeDetail" class="detail-card" style="margin-top: 20px">
         <div class="detail-header">
           <h3>短链详情（title: {{ activeDetail.title }}）</h3>
           <el-button
-              icon="el-icon-close"
-              circle
-              @click="activeDetail = null"
-              class="close-btn"
+            icon="el-icon-close"
+            circle
+            @click="activeDetail = null"
+            class="close-btn"
           />
         </div>
 
         <!-- 集成LinkDetail的核心表单 -->
         <el-form
-            :model="activeDetail"
-            :rules="detailRules"
-            ref="detailForm"
-            label-width="120px">
+          :model="activeDetail"
+          :rules="detailRules"
+          ref="detailForm"
+          label-width="120px"
+        >
           <el-form-item label="允许访问次数" prop="allowNum">
             <el-input-number
-                v-model="activeDetail.allowNum"
-                :min="0"
-                controls-position="right"
+              v-model="activeDetail.allowNum"
+              :min="0"
+              controls-position="right"
             />
           </el-form-item>
 
           <el-form-item label="过期时间">
             <el-date-picker
-                v-model="activeDetail.expireTime"
-                type="datetime"
-                value-format="timestamp"
+              v-model="activeDetail.expireTime"
+              type="datetime"
+              value-format="timestamp"
             />
           </el-form-item>
 
@@ -193,10 +190,10 @@
 
           <el-form-item v-if="activeDetail.privateTarget" label="访问密码">
             <el-input
-                v-model="activeDetail.password"
-                type="password"
-                show-password
-                placeholder="设置新密码"
+              v-model="activeDetail.password"
+              type="password"
+              show-password
+              placeholder="设置新密码"
             />
           </el-form-item>
         </el-form>
@@ -211,29 +208,29 @@
 
     <!-- 分页组件 -->
     <el-pagination
-        background
-        :current-page="queryParams.pageNum"
-        :page-sizes="[10, 20, 50, 100]"
-        :page-size="queryParams.pageSize"
-        :total="total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        class="pagination"
+      background
+      :current-page="queryParams.pageNum"
+      :page-sizes="[10, 20, 50, 100]"
+      :page-size="queryParams.pageSize"
+      :total="total"
+      layout="total, sizes, prev, pager, next, jumper"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      class="pagination"
     />
 
     <!-- 密码验证对话框 -->
     <el-dialog
-        title="访问验证"
-        :visible.sync="passwordDialogVisible"
-        width="30%"
+      title="访问验证"
+      :visible.sync="passwordDialogVisible"
+      width="30%"
     >
       <el-input
-          v-model="password"
-          type="password"
-          placeholder="请输入访问密码"
-          show-password
-          @keyup.enter="verifyPassword"
+        v-model="password"
+        type="password"
+        placeholder="请输入访问密码"
+        show-password
+        @keyup.enter="verifyPassword"
       />
       <span slot="footer">
         <el-button @click="passwordDialogVisible = false">取消</el-button>
@@ -242,112 +239,110 @@
     </el-dialog>
 
     <el-dialog
-        title="修改密码"
-        :visible.sync="changePwdDialogVisible"
-        width="400px"
+      title="修改密码"
+      :visible.sync="changePwdDialogVisible"
+      width="400px"
     >
       <el-form :model="pwdForm" :rules="pwdRules" ref="pwdFormRef">
         <el-form-item label="旧密码" prop="oldPassword">
           <el-input
-              v-model="pwdForm.oldPassword"
-              type="password"
-              show-password
-              placeholder="请输入原密码"
+            v-model="pwdForm.oldPassword"
+            type="password"
+            show-password
+            placeholder="请输入原密码"
           />
         </el-form-item>
         <el-form-item label="新密码" prop="newPassword">
           <el-input
-              v-model="pwdForm.newPassword"
-              type="password"
-              show-password
-              placeholder="6-20位字符"
+            v-model="pwdForm.newPassword"
+            type="password"
+            show-password
+            placeholder="6-20位字符"
           />
         </el-form-item>
       </el-form>
       <span slot="footer">
-    <el-button @click="changePwdDialogVisible = false">取消</el-button>
-    <el-button type="primary" @click="handleChangePassword">确认修改</el-button>
-  </span>
+        <el-button @click="changePwdDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleChangePassword"
+          >确认修改</el-button
+        >
+      </span>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import request from '@/utils/request';
-import md5 from 'js-md5';
+import request from "@/utils/request";
+import md5 from "js-md5";
 
 const API_MAP = {
-  expireTime: '/control/shortLink/deadTime',
-  allowNum: '/control/shortLink/visitNum',
-  privateTarget: '/control/shortLink/private',
-  password: '/control/shortLink/changePwd'
+  expireTime: "/control/shortLink/deadTime",
+  allowNum: "/control/shortLink/visitNum",
+  privateTarget: "/control/shortLink/private",
+  password: "/control/shortLink/changePwd",
 };
 
 export default {
-  name: 'ShortLinkList',
+  name: "ShortLinkList",
   data() {
     return {
       pwdRules: {
         oldPassword: [
-          { required: true, message: '必须输入旧密码', trigger: 'blur' }
+          { required: true, message: "必须输入旧密码", trigger: "blur" },
         ],
         newPassword: [
-          { required: true, message: '必须输入新密码', trigger: 'blur' },
-          { min: 6, max: 20, message: '密码长度6-20位', trigger: 'blur' }
-        ]
+          { required: true, message: "必须输入新密码", trigger: "blur" },
+          { min: 6, max: 20, message: "密码长度6-20位", trigger: "blur" },
+        ],
       },
       activeDetail: null,
       detailRules: {
-        allowNum: [
-          { type: 'number', min: 0, message: '不能小于0' }
-        ],
-        expireTime: [
-          { validator: this.validateExpireTime }
-        ],
+        allowNum: [{ type: "number", min: 0, message: "不能小于0" }],
+        expireTime: [{ validator: this.validateExpireTime }],
         password: [
           {
             validator: (rule, value, callback) => {
               // 仅在启用私密时校验
               if (this.activeDetail.privateTarget && !value) {
-                callback(new Error('启用私密必须设置密码'));
+                callback(new Error("启用私密必须设置密码"));
               } else {
                 callback();
               }
             },
-            trigger: 'blur'
-          }
-        ]
+            trigger: "blur",
+          },
+        ],
       },
       changePwdDialogVisible: false,
       pwdForm: {
-        id: '',
-        oldPassword: '',
-        newPassword: ''
+        id: "",
+        oldPassword: "",
+        newPassword: "",
       },
       loading: false,
       tableData: [],
       total: 0,
       tagOptions: [],
-      password: '',
+      password: "",
       currentLink: null,
       passwordDialogVisible: false,
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        keyword: '',
+        keyword: "",
         tags: [],
-        status: null
+        status: null,
       },
       statusOptions: [
-        { value: 0, label: '草稿' },
-        { value: 1, label: '发布' },
-        { value: 2, label: '禁用' }
+        { value: 0, label: "草稿" },
+        { value: 1, label: "发布" },
+        { value: 2, label: "禁用" },
       ],
       statusMap: {
-        0: { label: '草稿', type: 'info' },
-        1: { label: '正常', type: 'success' },
-        2: { label: '禁用', type: 'danger' }
-      }
+        0: { label: "草稿", type: "info" },
+        1: { label: "正常", type: "success" },
+        2: { label: "禁用", type: "danger" },
+      },
     };
   },
   mounted() {
@@ -364,16 +359,16 @@ export default {
           pageSize: this.queryParams.pageSize,
           keyword: this.queryParams.keyword,
           tags: this.queryParams.tags,
-          status: this.queryParams.status
+          status: this.queryParams.status,
         };
 
-        const res = await request.get('/shortLink/list', {
+        const res = await request.get("/shortLink/list", {
           params,
-          headers: { accessToken: localStorage.getItem("accessToken") }
+          headers: { accessToken: localStorage.getItem("accessToken") },
         });
 
         if (res.code === 200) {
-          console.log('接口返回数据:', res.data);
+          console.log("接口返回数据:", res.data);
           this.tableData = res.data.list;
           this.total = res.data.total || 0;
         }
@@ -386,19 +381,18 @@ export default {
 
     async fetchTags() {
       try {
-        const res = await request.get('/tag/get',{
-
-          headers:{ accessToken: localStorage.getItem('accessToken') }
+        const res = await request.get("/tag/get", {
+          headers: { accessToken: localStorage.getItem("accessToken") },
         });
         // 处理可能的空值
         if (res && res.data) {
           this.tagOptions = res.data.data || [];
         } else {
           this.tagOptions = [];
-          console.error('标签接口返回数据异常:', res);
+          console.error("标签接口返回数据异常:", res);
         }
       } catch (error) {
-        console.error('获取标签失败:', error);
+        console.error("获取标签失败:", error);
         this.tagOptions = [];
       }
     },
@@ -406,9 +400,9 @@ export default {
     async handleDelete(id) {
       try {
         await request.delete(`/delete/shortLink/${id}`, {
-          headers: { accessToken: localStorage.getItem("accessToken") }
+          headers: { accessToken: localStorage.getItem("accessToken") },
         });
-        this.$message.success('删除成功');
+        this.$message.success("删除成功");
 
         // 删除后检查当前页是否为空
         if (this.tableData.length === 1 && this.queryParams.pageNum > 1) {
@@ -416,7 +410,7 @@ export default {
         }
         await this.fetchData();
       } catch (error) {
-        this.$message.error('删除失败');
+        this.$message.error("删除失败");
       }
     },
 
@@ -431,29 +425,27 @@ export default {
 
     async verifyPassword() {
       try {
-        const res = await request.post('/shortLink/verifyPassword', {
+        const res = await request.post("/shortLink/verifyPassword", {
           shortLink: this.currentLink.shortUrl,
-          password: this.password
-        }, {
-          headers: { accessToken: localStorage.getItem("accessToken") }
+          password: this.password,
         });
 
-        if (res.data.data) {
+        if (res.code === 200) {
           this.accessLink(this.currentLink.fullShortUrl);
           this.passwordDialogVisible = false;
         } else {
-          this.$message.error('密码错误');
+          this.$message.error("密码错误");
         }
       } catch (error) {
-        this.$message.error('验证失败');
+        this.$message.error("验证失败");
       }
     },
 
     accessLink(url) {
-      window.open(url, '_blank');
+      window.open(url, "_blank");
       // 记录访问统计
       request.get(`/sparrow/${this.currentLink.shortUrl}`, {
-        headers: { accessToken: localStorage.getItem("accessToken") }
+        headers: { accessToken: localStorage.getItem("accessToken") },
       });
     },
 
@@ -466,14 +458,18 @@ export default {
     async saveDetail() {
       try {
         await this.$refs.detailForm.validate();
-        const originalData = this.tableData.find(item => item.id === this.activeDetail.id);
+        const originalData = this.tableData.find(
+          (item) => item.id === this.activeDetail.id
+        );
         const changedFields = this.getChangedFields(originalData);
 
         // 批量调用接口
-        const requests = changedFields.map(field => this.callSpecificApi(field));
+        const requests = changedFields.map((field) =>
+          this.callSpecificApi(field)
+        );
         await Promise.all(requests);
 
-        this.$message.success('保存成功');
+        this.$message.success("保存成功");
         await this.fetchData();
       } catch (error) {
         this.$message.error(`保存失败: ${error.message}`);
@@ -493,9 +489,9 @@ export default {
     // },
     getChangedFields(original) {
       // 只检测以下字段变化
-      const compareFields = ['expireTime', 'allowNum', 'privateTarget'];
-      return compareFields.filter(key =>
-          this.activeDetail[key] !== original[key]
+      const compareFields = ["expireTime", "allowNum", "privateTarget"];
+      return compareFields.filter(
+        (key) => this.activeDetail[key] !== original[key]
       );
     },
 
@@ -504,45 +500,49 @@ export default {
       const params = this.buildParamsByField(field);
       const res = await request.put(apiPath, params);
 
-      if (res.code !== 200) throw new Error(res.msg || '接口异常');
+      if (res.code !== 200) throw new Error(res.msg || "接口异常");
     },
 
-// 在 methods 中添加以下方法
+    // 在 methods 中添加以下方法
     buildParamsByField(field) {
       const baseParams = { id: this.activeDetail.id };
 
       switch (field) {
-          // 过期时间
-        case 'expireTime':
+        // 过期时间
+        case "expireTime":
           return {
             ...baseParams,
-            expireTime: this.activeDetail.expireTime
+            expireTime: this.activeDetail.expireTime,
           };
 
-          // 访问次数
-        case 'allowNum':
+        // 访问次数
+        case "allowNum":
           return {
             ...baseParams,
-            allowNum: this.activeDetail.allowNum
+            allowNum: this.activeDetail.allowNum,
           };
 
-          // 私密状态（需校验密码）
-        case 'privateTarget':
+        // 私密状态（需校验密码）
+        case "privateTarget":
           if (this.activeDetail.privateTarget) {
             if (!this.activeDetail.password) {
-              throw new Error('启用私密必须设置密码');
+              throw new Error("启用私密必须设置密码");
             }
-            if (this.activeDetail.password.length < 4 || this.activeDetail.password.length >12) { // ✅ 添加长度校验
-              throw new Error('请输入4-12位密码');
+            if (
+              this.activeDetail.password.length < 4 ||
+              this.activeDetail.password.length > 12
+            ) {
+              // ✅ 添加长度校验
+              throw new Error("请输入4-12位密码");
             }
           }
           return {
             ...baseParams,
             privateTarget: this.activeDetail.privateTarget,
-            password: md5(this.activeDetail.password) // 新密码直接加密
+            password: md5(this.activeDetail.password), // 新密码直接加密
           };
 
-          // 密码修改（参数名转换 newPassword）
+        // 密码修改（参数名转换 newPassword）
         // case 'password':
         //   if (this.activeDetail.password.length < 6) {
         //     throw new Error('密码至少6位');
@@ -554,7 +554,7 @@ export default {
         //   };
 
         default:
-          throw new Error('未知字段类型');
+          throw new Error("未知字段类型");
       }
     },
 
@@ -565,27 +565,29 @@ export default {
 
     async handleChangePassword() {
       try {
-        console.log(this.pwdForm.oldPassword)
-        console.log(this.pwdForm.newPassword)
-        const res = await request.put('/control/shortLink/changePwd', {
+        console.log(this.pwdForm.oldPassword);
+        console.log(this.pwdForm.newPassword);
+        const res = await request.put("/control/shortLink/changePwd", {
           id: this.pwdForm.id,
           password: md5(this.pwdForm.oldPassword),
-          newPassword: md5(this.pwdForm.newPassword)
+          newPassword: md5(this.pwdForm.newPassword),
         });
 
         if (res.code === 200) {
-          this.$message.success('密码修改成功');
+          this.$message.success("密码修改成功");
           this.changePwdDialogVisible = false;
           await this.fetchData();
         }
       } catch (error) {
-        this.$message.error('修改失败: ' + error.response?.data?.msg);
+        this.$message.error("修改失败: " + error.response?.data?.msg);
       }
     },
 
     // 重置修改
     resetDetail() {
-      this.activeDetail = { ...this.tableData.find(item => item.id === this.activeDetail.id) };
+      this.activeDetail = {
+        ...this.tableData.find((item) => item.id === this.activeDetail.id),
+      };
     },
 
     handleSizeChange(val) {
@@ -603,13 +605,13 @@ export default {
       this.queryParams = {
         pageNum: 1,
         pageSize: 10,
-        keyword: '',
+        keyword: "",
         tags: [],
-        status: null
+        status: null,
       };
       this.fetchData();
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -643,7 +645,7 @@ export default {
   bottom: 20px;
   background: #fff;
   z-index: 100;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .detail-header {
@@ -657,5 +659,4 @@ export default {
   text-align: center;
   margin-top: 20px;
 }
-
 </style>
