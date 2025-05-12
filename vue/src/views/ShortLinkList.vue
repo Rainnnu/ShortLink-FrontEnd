@@ -358,33 +358,81 @@ export default {
     this.fetchTags();
   },
   methods: {
+    // async fetchData() {
+    //   this.loading = true;
+    //   // 确保参数格式正确（多选标签转为逗号分隔）
+    //   console.log(this.queryParams.pageNum, this.queryParams.pageSize);
+    //   let params = {
+    //     pageNum: this.queryParams.pageNum,
+    //     pageSize: this.queryParams.pageSize,
+    //   };
+    //   if (this.queryParams.keyword) params.keyword = this.queryParams.keyword;
+    //   if (this.queryParams.status) params.status = this.queryParams.status;
+    //   // params = {
+    //   //   tags: this.queryParams.tags,
+    //   // };
+    //   request
+    //     .get("/shortLink/list", { ...params })
+    //     .then((res) => {
+    //       if (res.code === 200) {
+    //         console.log("请求参数:", { ...params });
+    //         console.log("接口返回res:", res);
+    //         this.tableData = res.data.list;
+    //         this.total = res.data.total || 0;
+    //       }
+    //     })
+    //     .catch((error) => {
+    //       this.$message.error("加载失败");
+    //     })
+    //     .finally(() => {
+    //       this.loading = false;
+    //     });
+    // },
     async fetchData() {
       try {
         this.loading = true;
-        // 确保参数格式正确（多选标签转为逗号分隔）
-        console.log(this.queryParams.pageNum);
+
+        // 构造请求参数
         const params = {
           pageNum: this.queryParams.pageNum,
           pageSize: this.queryParams.pageSize,
-          keyword: this.queryParams.keyword,
-          tags: this.queryParams.tags,
-          status: this.queryParams.status,
+          keyword: this.queryParams.keyword || undefined, // 空值不传
+          status: this.queryParams.status || undefined, // 空值不传
+          tags: this.queryParams.tags?.length
+            ? this.queryParams.tags.join(",")
+            : undefined,
         };
 
-        const res = await request.get("/shortLink/list", params);
+        // 移除值为undefined的参数
+        const filteredParams = Object.fromEntries(
+          Object.entries(params).filter(([_, value]) => value !== undefined)
+        );
+
+        console.log("请求参数:", filteredParams);
+
+        const res = await request.get("/shortLink/list", {
+          params: filteredParams, // 正确传递GET参数
+        });
 
         if (res.code === 200) {
-          console.log("接口返回数据:", res.data);
-          this.tableData = res.data.list;
+          console.log("接口返回数据:", res);
+          this.tableData = res.data.list || [];
           this.total = res.data.total || 0;
+        } else {
+          // 处理业务逻辑错误
+          this.$message.error(res.msg || "获取数据失败");
         }
       } catch (error) {
-        this.$message.error("加载失败");
+        // 拦截器已经处理了401/40005等错误，这里处理其他错误
+        console.error("请求异常:", error);
+        if (!error.response) {
+          this.$message.error("网络错误，请检查连接");
+        }
+        // 其他错误消息已在拦截器中显示
       } finally {
         this.loading = false;
       }
     },
-
     async fetchTags() {
       try {
         const res = await request.get("/tag/get", {
