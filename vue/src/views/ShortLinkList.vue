@@ -188,7 +188,11 @@
             <el-date-picker
               v-model="activeDetail.expireTime"
               type="datetime"
-              value-format="timestamp"
+              value-format="yyyy-MM-dd HH:mm:ss"
+              format="yyyy-MM-dd HH:mm:ss"
+              placeholder="选择过期时间"
+              clearable
+              style="width: 100%"
             />
           </el-form-item>
 
@@ -196,12 +200,13 @@
             <el-switch v-model="activeDetail.privateTarget" />
           </el-form-item>
 
-          <el-form-item v-if="activeDetail.privateTarget" label="访问密码">
+          <el-form-item v-if="activeDetail.privateTarget" label="设置密码">
             <el-input
               v-model="activeDetail.password"
+              :disabled="activeDetail.hasPassword"
               type="password"
               show-password
-              placeholder="设置新密码"
+              placeholder="设置访问密码"
             />
           </el-form-item>
         </el-form>
@@ -304,6 +309,7 @@ export default {
         ],
       },
       activeDetail: null,
+      originalData: null,
       detailRules: {
         allowNum: [{ type: "number", min: 0, message: "不能小于0" }],
         expireTime: [{ validator: this.validateExpireTime }],
@@ -408,14 +414,11 @@ export default {
           Object.entries(params).filter(([_, value]) => value !== undefined)
         );
 
-        console.log("请求参数:", filteredParams);
-
         const res = await request.get("/shortLink/list", {
           params: filteredParams, // 正确传递GET参数
         });
 
         if (res.code === 200) {
-          console.log("接口返回数据:", res);
           this.tableData = res.data.list || [];
           this.total = res.data.total || 0;
         } else {
@@ -468,6 +471,14 @@ export default {
       }
     },
 
+    // handleLinkClick(row) {
+    //   if (row.hasPassword) {
+    //     this.currentLink = row;
+    //     this.passwordDialogVisible = true;
+    //   } else {
+    //     this.accessLink(row.fullShortUrl);
+    //   }
+    // },
     handleLinkClick(row) {
       if (row.hasPassword) {
         this.currentLink = row;
@@ -478,11 +489,15 @@ export default {
     },
 
     async verifyPassword() {
+      console.log(this.currentLink.shortUrl)
+      console.log(this.password)
       try {
         const res = await request.post("/shortLink/verifyPassword", {
           shortLink: this.currentLink.shortUrl,
           password: this.password,
         });
+
+        console.log(res)
 
         if (res.code === 200) {
           this.accessLink(this.currentLink.fullShortUrl);
@@ -495,17 +510,23 @@ export default {
       }
     },
 
-    accessLink(url) {
-      window.open(url, "_blank");
-      // 记录访问统计
-      request.get(`/sparrow/${this.currentLink.shortUrl}`, {
-        headers: { accessToken: localStorage.getItem("accessToken") },
-      });
+    // accessLink(url) {
+    //   window.open(url, "_blank");
+    //   // 记录访问统计
+    //   request.get(`/sparrow/${this.currentLink.shortUrl}`, {
+    //     headers: { accessToken: localStorage.getItem("accessToken") },
+    //   });
+    // },
+    accessLink(fullShortUrl) {
+      window.open(fullShortUrl, "_blank");
+      const shortUrl = fullShortUrl.split('/').pop(); // 从完整链接中提取短码
+      request.get(`/sparrow/${shortUrl}`); // ✅ 直接使用参数值
     },
 
     // 显示详情
     handleShowDetail(row) {
       this.activeDetail = { ...row }; // 克隆行数据
+      console.log(this.activeDetail)
     },
 
     // 保存修改
