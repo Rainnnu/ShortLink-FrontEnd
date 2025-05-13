@@ -479,25 +479,33 @@ export default {
     //     this.accessLink(row.fullShortUrl);
     //   }
     // },
+    // handleLinkClick(row) {
+    //   if (row.hasPassword) {
+    //     this.currentLink = row;
+    //     this.passwordDialogVisible = true;
+    //   } else {
+    //     this.accessLink(row.fullShortUrl);
+    //   }
+    // },
     handleLinkClick(row) {
-      if (row.hasPassword) {
-        this.currentLink = row;
-        this.passwordDialogVisible = true;
-      } else {
-        this.accessLink(row.fullShortUrl);
-      }
+      // 直接跳转到/sparrow/{shortLink}路由
+      // 由RedirectPage组件处理是否需要密码
+      this.$router.push({
+        name: "Redirect",
+        params: { shortLink: row.shortUrl },
+      });
     },
 
     async verifyPassword() {
-      console.log(this.currentLink.shortUrl)
-      console.log(this.password)
+      console.log(this.currentLink.shortUrl);
+      console.log(this.password);
       try {
         const res = await request.post("/shortLink/verifyPassword", {
           shortLink: this.currentLink.shortUrl,
           password: this.password,
         });
 
-        console.log(res)
+        console.log(res);
 
         if (res.code === 200) {
           this.accessLink(this.currentLink.fullShortUrl);
@@ -519,14 +527,14 @@ export default {
     // },
     accessLink(fullShortUrl) {
       window.open(fullShortUrl, "_blank");
-      const shortUrl = fullShortUrl.split('/').pop(); // 从完整链接中提取短码
+      const shortUrl = fullShortUrl.split("/").pop(); // 从完整链接中提取短码
       request.get(`/sparrow/${shortUrl}`); // ✅ 直接使用参数值
     },
 
     // 显示详情
     handleShowDetail(row) {
       this.activeDetail = { ...row }; // 克隆行数据
-      console.log(this.activeDetail)
+      console.log(this.activeDetail);
     },
 
     // 保存修改

@@ -7,6 +7,7 @@ import ShortLinkList from "@/views/ShortLinkList.vue";
 import Login from "@/views/Login.vue";
 import User from "@/views/User.vue";
 import Tag from "@/views/Tag.vue";
+import RedirectPage from "@/views/RedirectPage.vue";
 
 Vue.use(VueRouter);
 
@@ -48,6 +49,12 @@ const routes = [
         path: "/Tag",
         name: "Tag",
         component: Tag,
+      },
+      {
+        path: "/sparrow/:shortLink",
+        name: "Redirect",
+        component: RedirectPage,
+        props: true,
       },
     ],
   },
