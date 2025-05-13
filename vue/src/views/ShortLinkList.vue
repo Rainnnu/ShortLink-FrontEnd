@@ -419,6 +419,7 @@ export default {
         });
 
         if (res.code === 200) {
+          console.log("list:", res);
           this.tableData = res.data.list || [];
           this.total = res.data.total || 0;
         } else {
@@ -436,20 +437,36 @@ export default {
         this.loading = false;
       }
     },
+    // async fetchTags() {
+    //   try {
+    //     const res = await request.get("/tag/get");
+    //     // 处理可能的空值
+    //     if (res && res.data) {
+    //       this.tagOptions = res.data.data || [];
+    //     } else {
+    //       this.tagOptions = [];
+    //       console.error("标签接口返回数据异常:", res);
+    //     }
+    //   } catch (error) {
+    //     console.error("获取标签失败:", error);
+    //     this.tagOptions = [];
+    //   }
+    // },
+
     async fetchTags() {
       try {
-        const res = await request.get("/tag/get", {
-          headers: { accessToken: localStorage.getItem("accessToken") },
-        });
-        // 处理可能的空值
-        if (res && res.data) {
-          this.tagOptions = res.data.data || [];
+        const res = await request.get("/tag/get");
+        if (res.code === 200) {
+          this.tagOptions = res.data || [];
+
+          console.log(this.tagList);
         } else {
+          this.$message.error(res.msg || "获取标签失败");
           this.tagOptions = [];
-          console.error("标签接口返回数据异常:", res);
         }
       } catch (error) {
         console.error("获取标签失败:", error);
+        this.$message.error("获取标签失败，请检查网络连接");
         this.tagOptions = [];
       }
     },
@@ -525,10 +542,39 @@ export default {
     //     headers: { accessToken: localStorage.getItem("accessToken") },
     //   });
     // },
+
+    // accessLink(fullShortUrl) {
+    //   window.open(fullShortUrl, "_blank");
+    //   const shortUrl = fullShortUrl.split('/').pop(); // 从完整链接中提取短码
+    //   request.get(`/sparrow/${shortUrl}`); // ✅ 直接使用参数值
+    // },
+
+    // accessLink(fullShortUrl) {
+    //   // 先发送统计到自己的后端
+    //   const shortUrl = fullShortUrl.split('/').pop();
+    //
+    //   request.get(`/sparrow/${shortUrl}`, {
+    //     headers: { accessToken: localStorage.getItem("accessToken") }
+    //   })
+    //       .then(() => window.open(fullShortUrl, "_blank")) // 统计成功后再跳转
+    //       .catch(error => console.error('统计失败:', error));
+    // },
+
     accessLink(fullShortUrl) {
+      // 立即跳转（不等待统计结果）
       window.open(fullShortUrl, "_blank");
-      const shortUrl = fullShortUrl.split("/").pop(); // 从完整链接中提取短码
-      request.get(`/sparrow/${shortUrl}`); // ✅ 直接使用参数值
+
+      // 异步发送统计请求（不阻塞跳转）
+      const shortUrl = fullShortUrl.split("/").pop();
+      const res = request
+        .get(`/sparrow/${shortUrl}`, {
+          headers: { accessToken: localStorage.getItem("accessToken") },
+        })
+        .catch((error) => {
+          console.error("统计失败（不影响跳转）:", error);
+        });
+
+      console.log("res:", res);
     },
 
     // 显示详情

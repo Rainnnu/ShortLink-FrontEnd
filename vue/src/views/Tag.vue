@@ -175,6 +175,8 @@ export default {
         const res = await request.get("/tag/get");
         if (res.code === 200) {
           this.tagList = res.data || [];
+
+          console.log(this.tagList)
         } else {
           this.$message.error(res.msg || "获取标签失败");
         }
