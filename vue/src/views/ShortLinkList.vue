@@ -860,12 +860,17 @@
               :content="`点击次数: ${row.visits} | 独立IP: ${row.ipNum}`"
               placement="top"
           >
+<!--            <el-link-->
+<!--                type="primary"-->
+<!--                :underline="false"-->
+<!--                @click="accessLink(row)"-->
+<!--            >{{ row.fullShortUrl }}</el-link>-->
+
             <el-link
                 type="primary"
                 :underline="false"
-                @click="accessLink(row)"
-            >{{ row.fullShortUrl }}</el-link
-            >
+                :href="`${row.fullShortUrl}`"
+            >{{ row.fullShortUrl }}</el-link>
           </el-tooltip>
           <el-tag
               v-if="row.hasPassword"

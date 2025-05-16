@@ -320,7 +320,10 @@ export default {
             console.error("批量删除失败:", error);
             this.$message.error("批量删除失败，请重试");
           });
-      });
+      })
+          .catch(()=> {
+            console.log("用户取消了删除操作");
+          })
     },
 
     handleSelectionChange(selection) {
