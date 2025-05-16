@@ -63,9 +63,18 @@ export default {
         this.loading = true;
         this.error = false;
 
-        const res = await request.get(`/sparrow/${this.shortLink}`);
+        console.log("111")
+        // const res = await request.get(`/sparrow/${this.shortLink}`);
+
+        const res = await request.post(`/sparrow/{shortLink}`,{
+          shortLink:this.shortLink,
+          password:123456
+        });
+        console.log("222")
+        console.log(res)
 
         if (res.code === 200) {
+
           if (res.data.needPassword) {
             this.needPassword = true;
             this.originalUrl = res.data.originalUrl;
