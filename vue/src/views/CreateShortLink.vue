@@ -71,7 +71,7 @@
           v-for="tag in tagOptions"
           :key="tag.id"
           :label="tag.name"
-          :value="tag.id"
+          :value="tag.name"
         >
           <span class="tag-option">
             <div
@@ -208,6 +208,7 @@ export default {
       try {
         const res = await request.get(`/tag/get?userId=${15}`);
         if (res.code === 200) {
+          console.log(res);
           this.tagOptions = res.data || [];
         } else {
           this.$message.error(res.msg);
@@ -232,7 +233,6 @@ export default {
           expireTime: this.form.expireTime,
           allowNum: this.form.allowNum || 0,
         };
-
         const res = await request.post("/creat/shortLink", params);
 
         if (res.code === 200) {

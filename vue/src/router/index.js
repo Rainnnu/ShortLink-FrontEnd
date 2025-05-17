@@ -8,7 +8,7 @@ import Login from "@/views/Login.vue";
 import User from "@/views/User.vue";
 import Tag from "@/views/Tag.vue";
 import RedirectPage from "@/views/RedirectPage.vue";
-import NotFound from '@/views/404.vue';
+// import NotFound from "@/views/404.vue";
 
 Vue.use(VueRouter);
 
@@ -59,15 +59,15 @@ const routes = [
       },
     ],
   },
+  // {
+  //   path: '/404',
+  //   name: 'NotFound',
+  //   component: NotFound
+  // },
   {
-    path: '/404',
-    name: 'NotFound',
-    component: NotFound
+    path: "*", // 捕获所有未匹配的路由
+    redirect: "/404",
   },
-  {
-    path: '*',    // 捕获所有未匹配的路由
-    redirect: '/404'
-  }
 ];
 
 const router = new VueRouter({
@@ -91,10 +91,9 @@ router.beforeEach((to, from, next) => {
 
   // 如果访问的是不存在的路由
   if (!to.matched.length) {
-    next({ name: 'NotFound' });
+    next({ name: "NotFound" });
     return;
   }
-
 
   // 否则继续导航
   next();

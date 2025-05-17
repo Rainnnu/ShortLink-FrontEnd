@@ -64,6 +64,7 @@
             v-model.number="currentTag.parentId"
             type="number"
             placeholder="请输入父类ID"
+            min="1"
           ></el-input>
         </el-form-item>
         <el-form-item label="颜色" prop="color">
@@ -176,7 +177,7 @@ export default {
         if (res.code === 200) {
           this.tagList = res.data || [];
 
-          console.log(this.tagList)
+          console.log(this.tagList);
         } else {
           this.$message.error(res.msg || "获取标签失败");
         }
@@ -299,31 +300,34 @@ export default {
           cancelButtonText: "取消",
           type: "warning",
         }
-      ).then(async () => {
-        // 创建URLSearchParams对象
-        const params = new URLSearchParams();
+      )
+        .then(async () => {
+          // 创建URLSearchParams对象
+          const params = new URLSearchParams();
 
-        // 添加多个同名参数（Spring会自动接收为List）
-        this.selectedIds.forEach((id) => params.append("ids", id));
-        request
-          .put(`/tag/deletes?${params.toString()}`)
-          .then((res) => {
-            if (res.code === 200) {
-              this.$message.success(`成功删除${this.selectedIds.length}个标签`);
-              this.selectedIds = [];
-              this.fetchTags();
-            } else {
-              this.$message.error(res.msg || "批量删除失败");
-            }
-          })
-          .catch((error) => {
-            console.error("批量删除失败:", error);
-            this.$message.error("批量删除失败，请重试");
-          });
-      })
-          .catch(()=> {
-            console.log("用户取消了删除操作");
-          })
+          // 添加多个同名参数（Spring会自动接收为List）
+          this.selectedIds.forEach((id) => params.append("ids", id));
+          request
+            .put(`/tag/deletes?${params.toString()}`)
+            .then((res) => {
+              if (res.code === 200) {
+                this.$message.success(
+                  `成功删除${this.selectedIds.length}个标签`
+                );
+                this.selectedIds = [];
+                this.fetchTags();
+              } else {
+                this.$message.error(res.msg || "批量删除失败");
+              }
+            })
+            .catch((error) => {
+              console.error("批量删除失败:", error);
+              this.$message.error("批量删除失败，请重试");
+            });
+        })
+        .catch(() => {
+          console.log("用户取消了删除操作");
+        });
     },
 
     handleSelectionChange(selection) {
