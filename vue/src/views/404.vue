@@ -9,10 +9,7 @@
         <p class="description">抱歉，当前链接无法访问，或许已被限制 🐾</p>
         <p class="description">可能是你迷路了，也可能是页面被移除了～</p>
 
-        <el-button
-            type="primary"
-            class="custom-button"
-            @click="goHome">
+        <el-button type="primary" class="custom-button" @click="goHome">
           返回首页
         </el-button>
       </el-col>
@@ -24,10 +21,10 @@
 export default {
   methods: {
     goHome() {
-      this.$router.push('/')
-    }
-  }
-}
+      this.$router.push("/");
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -50,7 +47,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('../assets/404.jpg') no-repeat center center;
+  background: url("../assets/404.jpg") no-repeat center center;
   background-size: cover;
   z-index: 0;
   animation: floatBackground 60s linear infinite;
@@ -85,16 +82,28 @@ h1 {
 
 /* 动画定义 */
 @keyframes floatBackground {
-  0% { background-position: 0 0; }
-  100% { background-position: 100% 100%; }
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes bounce {
-  to { transform: translateY(-10px); }
+  to {
+    transform: translateY(-10px);
+  }
 }
 </style>
